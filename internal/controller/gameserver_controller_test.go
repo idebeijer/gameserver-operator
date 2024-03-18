@@ -35,7 +35,9 @@ var _ = Describe("GameServer Controller", func() {
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
+					Spec: gameserverv1alpha1.GameServerSpec{
+						Image: &[]string{"gameservermanagers/gameserver:csgo"}[0],
+					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
