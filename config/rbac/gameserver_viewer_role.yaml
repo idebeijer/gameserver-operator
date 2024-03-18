@@ -1,0 +1,27 @@
+# permissions for end users to view gameservers.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: gameserver-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: gameserver-operator
+    app.kubernetes.io/part-of: gameserver-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: gameserver-viewer-role
+rules:
+- apiGroups:
+  - gameserver.idebeijer.github.io
+  resources:
+  - gameservers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - gameserver.idebeijer.github.io
+  resources:
+  - gameservers/status
+  verbs:
+  - get

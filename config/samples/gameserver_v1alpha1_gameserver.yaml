@@ -1,0 +1,12 @@
+apiVersion: gameserver.idebeijer.github.io/v1alpha1
+kind: GameServer
+metadata:
+  labels:
+    app.kubernetes.io/name: gameserver
+    app.kubernetes.io/instance: gameserver-sample
+    app.kubernetes.io/part-of: gameserver-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: gameserver-operator
+  name: gameserver-sample
+spec:
+  # TODO(user): Add fields here
