@@ -1,5 +1,7 @@
 # gameserver-operator
 
+🚧 Work In Progress, will write README soon.
+
 ## Description
 
 ## Getting Started
