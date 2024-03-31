@@ -21,7 +21,6 @@ import (
 
 const (
 	typeAvailableGameServer = "Available"
-	typeDegradedMemcached   = "Degraded"
 )
 
 // GameServerReconciler reconciles a GameServer object
@@ -100,20 +99,133 @@ func (r *GameServerReconciler) deploymentForGameServer(gs *gameserverv1alpha1.Ga
 			Selector: &metav1.LabelSelector{
 				MatchLabels: ls,
 			},
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.RecreateDeploymentStrategyType,
+			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: ls,
 				},
 				Spec: corev1.PodSpec{
-					SecurityContext: &corev1.PodSecurityContext{
-						RunAsNonRoot: &[]bool{true}[0],
-					},
+					//SecurityContext: &corev1.PodSecurityContext{
+					//	RunAsNonRoot: &[]bool{true}[0],
+					//},
+					HostNetwork: *gs.Spec.UseHostNetwork,
 					Containers: []corev1.Container{
 						{
 							Name:            "gameserver",
 							Image:           *gs.Spec.Image,
 							ImagePullPolicy: corev1.PullAlways,
 							Ports:           gs.Spec.Ports,
+							SecurityContext: &corev1.SecurityContext{
+								//RunAsNonRoot: &[]bool{true}[0],
+								//RunAsUser:    &[]int64{1000}[0],
+								//RunAsGroup:   &[]int64{1000}[0],
+								//AllowPrivilegeEscalation: &[]bool{false}[0],
+								Privileged: &[]bool{true}[0],
+								RunAsUser:  &[]int64{0}[0], // TODO: Figure out if/how LinuxGSM docker img can run as non-root
+								RunAsGroup: &[]int64{0}[0], // TODO: Figure out if/how LinuxGSM docker img can run as non-root
+							},
+							Env: []corev1.EnvVar{
+								{
+									Name:  "USER",
+									Value: "linuxgsm",
+								},
+								{
+									Name:  "UID",
+									Value: "0",
+								},
+								{
+									Name:  "GID",
+									Value: "0",
+								},
+							},
+							Command: []string{
+								"/bin/sh",
+								"-c",
+							},
+							Args: []string{
+								`#!/bin/bash
+
+ls -la /app
+chown -R linuxgsm:linuxgsm /app
+ls -la /app
+
+exit_handler() {
+ # Execute the shutdown commands
+ echo -e "Stopping ${GAMESERVER}"
+
+ exec gosu "${USER}" ./"${GAMESERVER}" stop
+ #exec ./"${GAMESERVER}" stop
+
+ exitcode=$?
+ exit ${exitcode}
+}
+
+# Exit trap
+echo -e "Loading exit handler"
+trap exit_handler SIGQUIT SIGINT SIGTERM
+
+DISTRO="$(grep "PRETTY_NAME" /etc/os-release | awk -F = '{gsub(/"/,"",$2);print $2}')"
+echo -e ""
+echo -e "Welcome to the LinuxGSM"
+echo -e "================================================================================"
+echo -e "CURRENT TIME: $(date)"
+echo -e "BUILD TIME: $(cat /build-time.txt)"
+echo -e "GAMESERVER: ${GAMESERVER}"
+echo -e "DISTRO: ${DISTRO}"
+echo -e ""
+echo -e "USER: ${USER}"
+echo -e "UID: ${UID}"
+echo -e "GID: ${GID}"
+echo -e ""
+echo -e "LGSM_GITHUBUSER: ${LGSM_GITHUBUSER}"
+echo -e "LGSM_GITHUBREPO: ${LGSM_GITHUBREPO}"
+echo -e "LGSM_GITHUBBRANCH: ${LGSM_GITHUBBRANCH}"
+echo -e "LGSM_LOGDIR: ${LGSM_LOGDIR}"
+echo -e "LGSM_SERVERFILES: ${LGSM_SERVERFILES}"
+echo -e "LGSM_DATADIR: ${LGSM_DATADIR}"
+echo -e "LGSM_CONFIG: ${LGSM_CONFIG}"
+
+echo -e ""
+echo -e "Initalising"
+echo -e "================================================================================"
+
+export LGSM_GITHUBUSER=${LGSM_GITHUBUSER}
+export LGSM_GITHUBREPO=${LGSM_GITHUBREPO}
+export LGSM_GITHUBBRANCH=${LGSM_GITHUBBRANCH}
+export LGSM_LOGDIR=${LGSM_LOGDIR}
+export LGSM_SERVERFILES=${LGSM_SERVERFILES}
+export LGSM_DATADIR=${LGSM_DATADIR}
+export LGSM_CONFIG=${LGSM_CONFIG}
+
+cd /app || exit
+
+# start cron
+cron
+
+#echo -e ""
+#echo -e "Check Permissions"
+#echo -e "================================="
+#echo -e "setting UID to ${UID}"
+#usermod -u "${UID}" -m -d /data linuxgsm > /dev/null 2>&1
+#echo -e "setting GID to ${GID}"
+#groupmod -g "${GID}" linuxgsm
+#echo -e "updating permissions for /data"
+#chown -R "${USER}":"${USER}" /data
+#echo -e "updating permissions for /app"
+#chown -R "${USER}":"${USER}" /app
+#export HOME=/data
+
+echo -e ""
+echo -e "Switch to user ${USER}"
+echo -e "================================="
+exec gosu "${USER}" /app/entrypoint-user.sh &
+wait
+
+#exec /app/entrypoint-user.sh &
+$wait`,
+							},
 						},
 					},
 				},

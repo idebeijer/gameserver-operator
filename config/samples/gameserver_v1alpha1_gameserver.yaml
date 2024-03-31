@@ -9,4 +9,7 @@ metadata:
     app.kubernetes.io/created-by: gameserver-operator
   name: gameserver-sample
 spec:
-  # TODO(user): Add fields here
+  image: "gameservermanagers/gameserver:csgo"
+#  linuxGSMConfig:
+#    existingConfigMap:
+#      key: linuxgsm-config

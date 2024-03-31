@@ -165,6 +165,11 @@ func (in *GameServerSpec) DeepCopyInto(out *GameServerSpec) {
 		*out = new(GameServerDataPVC)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.UseHostNetwork != nil {
+		in, out := &in.UseHostNetwork, &out.UseHostNetwork
+		*out = new(bool)
+		**out = **in
+	}
 	if in.AdditionalVolumes != nil {
 		in, out := &in.AdditionalVolumes, &out.AdditionalVolumes
 		*out = make([]v1.Volume, len(*in))

@@ -50,7 +50,6 @@ type GameServerDataPVC struct {
 
 // GameServerSpec defines the desired state of GameServer
 type GameServerSpec struct {
-	// Important: Run "make" to regenerate code after modifying this file
 
 	// Image is the container image to run
 	Image *string `json:"image"`
@@ -66,6 +65,10 @@ type GameServerSpec struct {
 
 	// GameServerDataPVC is the spec for the persistent volume claim
 	GameServerDataPVC *GameServerDataPVC `json:"gameServerDataPVC,omitempty"`
+
+	// UseHostNetwork is a flag to use the host network of the node (recommended for game servers)
+	// +kubebuilder:default=true
+	UseHostNetwork *bool `json:"useHostNetwork,omitempty"`
 
 	// AdditionalVolumes is a list of additional volumes to mount
 	AdditionalVolumes []v1.Volume `json:"additionalVolumes,omitempty"`

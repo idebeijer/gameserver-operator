@@ -1909,6 +1909,11 @@ spec:
                   - containerPort
                   type: object
                 type: array
+              useHostNetwork:
+                default: true
+                description: UseHostNetwork is a flag to use the host network of the
+                  node (recommended for game servers)
+                type: boolean
             required:
             - image
             type: object
