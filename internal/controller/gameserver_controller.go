@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,14 +36,15 @@ type GameServerReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
+//+kubebuilder:rbac:groups=core,resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	gameserver := &gameserverv1alpha1.GameServer{}
-	err := r.Get(ctx, req.NamespacedName, gameserver)
+	gs := &gameserverv1alpha1.GameServer{}
+	err := r.Get(ctx, req.NamespacedName, gs)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -51,21 +53,52 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	if gameserver.Status.Conditions == nil || len(gameserver.Status.Conditions) == 0 {
-		meta.SetStatusCondition(&gameserver.Status.Conditions, metav1.Condition{Type: typeAvailableGameServer, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "Reconciling GameServer"})
-		if err = r.Status().Update(ctx, gameserver); err != nil {
+	if gs.Status.Conditions == nil || len(gs.Status.Conditions) == 0 {
+		meta.SetStatusCondition(&gs.Status.Conditions, metav1.Condition{Type: typeAvailableGameServer, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "Reconciling GameServer"})
+		if err = r.Status().Update(ctx, gs); err != nil {
 			return ctrl.Result{}, err
 		}
 
-		if err := r.Get(ctx, req.NamespacedName, gameserver); err != nil {
+		if err := r.Get(ctx, req.NamespacedName, gs); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
+	// Check if the PVC already exists and if PVC is enabled
+	if gs.Spec.GameServerDataPVC != nil && *gs.Spec.GameServerDataPVC.Enabled {
+		pvc := &corev1.PersistentVolumeClaim{}
+		var claimName string
+		if gs.Spec.GameServerDataPVC.Name != nil {
+			claimName = *gs.Spec.GameServerDataPVC.Name
+		} else {
+			claimName = gs.Name
+		}
+		err = r.Get(ctx, types.NamespacedName{Name: claimName, Namespace: gs.Namespace}, pvc)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				// PVC does not exist, create it
+				pvc, err := r.persistentVolumeClaimForGameServer(gs)
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+
+				if err := r.Create(ctx, pvc); err != nil {
+					return ctrl.Result{}, err
+				}
+
+				// PVC created, requeue the request
+				return ctrl.Result{Requeue: true}, nil
+			} else {
+				// Error occurred while trying to get the PVC
+				return ctrl.Result{}, err
+			}
+		}
+	}
+
 	found := &appsv1.Deployment{}
-	err = r.Get(ctx, types.NamespacedName{Name: gameserver.Name, Namespace: gameserver.Namespace}, found)
+	err = r.Get(ctx, types.NamespacedName{Name: gs.Name, Namespace: gs.Namespace}, found)
 	if err != nil && apierrors.IsNotFound(err) {
-		dep, err := r.deploymentForGameServer(gameserver)
+		dep, err := r.deploymentForGameServer(gs)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -74,8 +107,8 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{}, err
 		}
 
-		meta.SetStatusCondition(&gameserver.Status.Conditions, metav1.Condition{Type: typeAvailableGameServer, Status: metav1.ConditionTrue, Reason: "DeploymentCreated", Message: "Deployment created"})
-		if err = r.Status().Update(ctx, gameserver); err != nil {
+		meta.SetStatusCondition(&gs.Status.Conditions, metav1.Condition{Type: typeAvailableGameServer, Status: metav1.ConditionTrue, Reason: "DeploymentCreated", Message: "Deployment created"})
+		if err = r.Status().Update(ctx, gs); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -111,6 +144,18 @@ func (r *GameServerReconciler) deploymentForGameServer(gs *gameserverv1alpha1.Ga
 					//	RunAsNonRoot: &[]bool{true}[0],
 					//},
 					HostNetwork: *gs.Spec.UseHostNetwork,
+					InitContainers: []corev1.Container{
+						{
+							Name:  "init",
+							Image: "busybox",
+							Command: []string{
+								"/bin/sh",
+							},
+							Args: []string{
+								"-c", "chmod -R 755 /data && chown -R 1000:1000 /data",
+							},
+						},
+					},
 					Containers: []corev1.Container{
 						{
 							Name:            "gameserver",
@@ -142,9 +187,9 @@ func (r *GameServerReconciler) deploymentForGameServer(gs *gameserverv1alpha1.Ga
 							},
 							Command: []string{
 								"/bin/sh",
-								"-c",
 							},
 							Args: []string{
+								"-c",
 								`#!/bin/bash
 
 ls -la /app
@@ -233,11 +278,85 @@ $wait`,
 		},
 	}
 
+	if gs.Spec.GameServerDataPVC != nil && *gs.Spec.GameServerDataPVC.Enabled {
+		volumeMount := corev1.VolumeMount{
+			Name:      "gameserver-data",
+			MountPath: "/data",
+		}
+		dep.Spec.Template.Spec.Containers[0].VolumeMounts = append(dep.Spec.Template.Spec.Containers[0].VolumeMounts, volumeMount)
+		dep.Spec.Template.Spec.InitContainers[0].VolumeMounts = append(dep.Spec.Template.Spec.InitContainers[0].VolumeMounts, volumeMount)
+
+		var claimName string
+		if gs.Spec.GameServerDataPVC.Name != nil {
+			claimName = *gs.Spec.GameServerDataPVC.Name
+		} else {
+			claimName = gs.Name
+		}
+		volume := corev1.Volume{
+			Name: "gameserver-data",
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: claimName,
+				},
+			},
+		}
+		dep.Spec.Template.Spec.Volumes = append(dep.Spec.Template.Spec.Volumes, volume)
+	}
+
 	if err := ctrl.SetControllerReference(gs, dep, r.Scheme); err != nil {
 		return nil, err
 	}
 
 	return dep, nil
+}
+
+func (r *GameServerReconciler) persistentVolumeClaimForGameServer(gs *gameserverv1alpha1.GameServer) (*corev1.PersistentVolumeClaim, error) {
+	ls := labelsForGameServer(gs.Name, *gs.Spec.Image)
+
+	defaultPVC := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      gs.Name,
+			Namespace: gs.Namespace,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+			},
+			Resources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceStorage: resource.MustParse("50Gi"),
+				},
+			},
+			Selector: &metav1.LabelSelector{
+				MatchLabels: ls,
+			},
+		},
+	}
+
+	var desiredPVC *corev1.PersistentVolumeClaim
+	if gs.Spec.GameServerDataPVC != nil {
+		desiredPVC = &corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      *gs.Spec.GameServerDataPVC.Name, // FIXME: causes invalid nil pointer dereference if not set
+				Namespace: gs.Namespace,
+			},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				AccessModes: []corev1.PersistentVolumeAccessMode{
+					corev1.ReadWriteOnce,
+				},
+				Resources:        gs.Spec.GameServerDataPVC.Resources,
+				StorageClassName: gs.Spec.GameServerDataPVC.StorageClassName,
+			},
+		}
+	} else {
+		desiredPVC = defaultPVC.DeepCopy()
+	}
+
+	if err := ctrl.SetControllerReference(gs, desiredPVC, r.Scheme); err != nil {
+		return nil, err
+	}
+
+	return desiredPVC, nil
 }
 
 func labelsForGameServer(name string, image string) map[string]string {

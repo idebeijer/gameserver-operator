@@ -1726,6 +1726,7 @@ spec:
                   claim
                 properties:
                   enabled:
+                    default: true
                     description: Enabled is a flag to enable or disable the PVC
                     type: boolean
                   name:

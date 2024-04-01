@@ -31,6 +31,7 @@ type GameConfigSource struct {
 
 type GameServerDataPVC struct {
 	// Enabled is a flag to enable or disable the PVC
+	// +kubebuilder:default=true
 	Enabled *bool `json:"enabled,omitempty"`
 
 	// Name is the name of the PVC

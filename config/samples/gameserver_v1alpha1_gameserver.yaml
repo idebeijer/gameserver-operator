@@ -13,3 +13,10 @@ spec:
 #  linuxGSMConfig:
 #    existingConfigMap:
 #      key: linuxgsm-config
+  gameServerDataPVC:
+    enabled: true
+    storageClassName: "longhorn"
+    name: gameserver-data # TODO: not setting this causes invalid nil pointer dereference
+    resources:
+      requests:
+        storage: 50Gi
