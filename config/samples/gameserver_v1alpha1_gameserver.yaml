@@ -9,10 +9,12 @@ metadata:
     app.kubernetes.io/created-by: gameserver-operator
   name: gameserver-sample
 spec:
-  image: "gameservermanagers/gameserver:csgo"
+#  image: "gameservermanagers/gameserver:csgo"
+  image: "gameservermanagers/gameserver:pz"
 #  linuxGSMConfig:
 #    existingConfigMap:
 #      key: linuxgsm-config
+  useHostNetwork: false
   gameServerDataPVC:
     enabled: true
     storageClassName: "longhorn"

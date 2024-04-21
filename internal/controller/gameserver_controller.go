@@ -41,7 +41,7 @@ type GameServerReconciler struct {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	log := log.FromContext(ctx)
 
 	gs := &gameserverv1alpha1.GameServer{}
 	err := r.Get(ctx, req.NamespacedName, gs)
@@ -50,6 +50,7 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{}, nil
 		}
 
+		log.Error(err, "Failed to get gameserver")
 		return ctrl.Result{}, err
 	}
 
@@ -73,6 +74,7 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		} else {
 			claimName = gs.Name
 		}
+
 		err = r.Get(ctx, types.NamespacedName{Name: claimName, Namespace: gs.Namespace}, pvc)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
@@ -90,6 +92,7 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				return ctrl.Result{Requeue: true}, nil
 			} else {
 				// Error occurred while trying to get the PVC
+				log.Error(err, "Failed to get gameserver data PVC")
 				return ctrl.Result{}, err
 			}
 		}
