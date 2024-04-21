@@ -31,6 +31,7 @@ type GameConfigSource struct {
 
 type GameServerDataPVC struct {
 	// Enabled is a flag to enable or disable the PVC
+	// +kubebuilder:default=true
 	Enabled *bool `json:"enabled,omitempty"`
 
 	// Name is the name of the PVC
@@ -66,8 +67,8 @@ type GameServerSpec struct {
 	// GameServerDataPVC is the spec for the persistent volume claim
 	GameServerDataPVC *GameServerDataPVC `json:"gameServerDataPVC,omitempty"`
 
-	// UseHostNetwork is a flag to use the host network of the node (recommended for game servers)
-	// +kubebuilder:default=true
+	// UseHostNetwork is a flag to use the host network of the node, recommended for game servers but turned off by default
+	// +kubebuilder:default=false
 	UseHostNetwork *bool `json:"useHostNetwork,omitempty"`
 
 	// AdditionalVolumes is a list of additional volumes to mount
