@@ -29,7 +29,7 @@ type GameConfigSource struct {
 	MountPath *string `json:"mountPath,omitempty"`
 }
 
-type GameServerDataPVC struct {
+type DataStorageSpec struct {
 	// Enabled is a flag to enable or disable the PVC
 	// +kubebuilder:default=true
 	Enabled *bool `json:"enabled,omitempty"`
@@ -49,6 +49,21 @@ type GameServerDataPVC struct {
 	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 }
 
+type GameServerServiceSpec struct {
+	// Type is the type of service to create
+	// +kubebuilder:default=NodePort
+	Type *v1.ServiceType `json:"type,omitempty"`
+
+	// NodePort is the port to expose on the node
+	NodePort *int32 `json:"nodePort,omitempty"`
+
+	// Name is the name of the service
+	Name *string `json:"name,omitempty"`
+
+	// Ports is a list of ports to expose
+	Ports []v1.ServicePort `json:"ports,omitempty"`
+}
+
 // GameServerSpec defines the desired state of GameServer
 type GameServerSpec struct {
 
@@ -64,18 +79,39 @@ type GameServerSpec struct {
 	// Ports is a list of ports to expose
 	Ports []v1.ContainerPort `json:"ports,omitempty"`
 
-	// GameServerDataPVC is the spec for the persistent volume claim
-	GameServerDataPVC *GameServerDataPVC `json:"gameServerDataPVC,omitempty"`
+	// Services is a list of services to expose
+	Services []GameServerServiceSpec `json:"services,omitempty"`
 
-	// UseHostNetwork is a flag to use the host network of the node, recommended for game servers but turned off by default
-	// +kubebuilder:default=false
-	UseHostNetwork *bool `json:"useHostNetwork,omitempty"`
+	// Resources is the resource requirements for the game server
+	// +optional
+	Resources v1.ResourceRequirements `json:"resources,omitempty"`
 
-	// AdditionalVolumes is a list of additional volumes to mount
-	AdditionalVolumes []v1.Volume `json:"additionalVolumes,omitempty"`
+	// DataStorageSpec is the data storage configuration for the game server.
+	// If not set, no data storage will be used.
+	// This will mount a PVC to /data, which is the default data directory for LinuxGSM
+	// https://github.com/GameServerManagers/docker-gameserver
+	// +optional
+	DataStorageSpec *DataStorageSpec `json:"dataStorageSpec,omitempty"`
 
-	// AdditionalVolumeMounts is a list of additional volume mounts
-	AdditionalVolumeMounts []v1.VolumeMount `json:"additionalVolumeMounts,omitempty"`
+	// HostNetwork controls whether the pod may use the node network namespace
+	// +optional
+	HostNetwork bool `json:"hostNetwork,omitempty"`
+
+	// Volumes allows configuration of additional volumes.
+	// +optional
+	Volumes []v1.Volume `json:"volumes,omitempty"`
+
+	// VolumeMounts allows configuration of additional VolumeMounts.
+	// +optional
+	VolumeMounts []v1.VolumeMount `json:"volumeMounts,omitempty"`
+
+	// InitContainers allows configuration of additional init containers.
+	// +optional
+	InitContainers []v1.Container `json:"initContainers,omitempty"`
+
+	// ExtraEnvs allows configuration of additional environment variables.
+	// +optional
+	ExtraEnvs []v1.EnvVar `json:"extraEnvs,omitempty"`
 }
 
 // GameServerStatus defines the observed state of GameServer

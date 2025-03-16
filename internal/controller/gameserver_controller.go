@@ -41,7 +41,7 @@ type GameServerReconciler struct {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := log.FromContext(ctx)
+	logger := log.FromContext(ctx)
 
 	gs := &gameserverv1alpha1.GameServer{}
 	err := r.Get(ctx, req.NamespacedName, gs)
@@ -50,7 +50,7 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{}, nil
 		}
 
-		log.Error(err, "Failed to get gameserver")
+		logger.Error(err, "Failed to get gameserver")
 		return ctrl.Result{}, err
 	}
 
@@ -66,11 +66,11 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Check if the PVC already exists and if PVC is enabled
-	if gs.Spec.GameServerDataPVC != nil && *gs.Spec.GameServerDataPVC.Enabled {
+	if gs.Spec.DataStorageSpec != nil && *gs.Spec.DataStorageSpec.Enabled {
 		pvc := &corev1.PersistentVolumeClaim{}
 		var claimName string
-		if gs.Spec.GameServerDataPVC.Name != nil {
-			claimName = *gs.Spec.GameServerDataPVC.Name
+		if gs.Spec.DataStorageSpec.Name != nil {
+			claimName = *gs.Spec.DataStorageSpec.Name
 		} else {
 			claimName = gs.Name
 		}
@@ -92,7 +92,7 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				return ctrl.Result{Requeue: true}, nil
 			} else {
 				// Error occurred while trying to get the PVC
-				log.Error(err, "Failed to get gameserver data PVC")
+				logger.Error(err, "Failed to get gameserver data PVC")
 				return ctrl.Result{}, err
 			}
 		}
@@ -125,6 +125,21 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 func (r *GameServerReconciler) deploymentForGameServer(gs *gameserverv1alpha1.GameServer) (*appsv1.Deployment, error) {
 	ls := labelsForGameServer(gs.Name, *gs.Spec.Image)
+
+	var initContainers []corev1.Container
+	if *gs.Spec.DataStorageSpec.Enabled {
+		initContainers = append(initContainers, corev1.Container{
+			Name:  "init",
+			Image: "busybox",
+			Command: []string{
+				"/bin/sh",
+			},
+			Args: []string{
+				"-c", "chmod -R 755 /data && chown -R 1000:1000 /data",
+			},
+		})
+	}
+
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      gs.Name,
@@ -146,25 +161,17 @@ func (r *GameServerReconciler) deploymentForGameServer(gs *gameserverv1alpha1.Ga
 					//SecurityContext: &corev1.PodSecurityContext{
 					//	RunAsNonRoot: &[]bool{true}[0],
 					//},
-					HostNetwork: *gs.Spec.UseHostNetwork,
-					InitContainers: []corev1.Container{
-						{
-							Name:  "init",
-							Image: "busybox",
-							Command: []string{
-								"/bin/sh",
-							},
-							Args: []string{
-								"-c", "chmod -R 755 /data && chown -R 1000:1000 /data",
-							},
-						},
-					},
+					HostNetwork:    gs.Spec.HostNetwork,
+					InitContainers: initContainers,
+					Volumes:        gs.Spec.Volumes,
 					Containers: []corev1.Container{
 						{
 							Name:            "gameserver",
 							Image:           *gs.Spec.Image,
 							ImagePullPolicy: corev1.PullAlways,
 							Ports:           gs.Spec.Ports,
+							Resources:       gs.Spec.Resources,
+							VolumeMounts:    gs.Spec.VolumeMounts,
 							SecurityContext: &corev1.SecurityContext{
 								//RunAsNonRoot: &[]bool{true}[0],
 								//RunAsUser:    &[]int64{1000}[0],
@@ -281,7 +288,7 @@ $wait`,
 		},
 	}
 
-	if gs.Spec.GameServerDataPVC != nil && *gs.Spec.GameServerDataPVC.Enabled {
+	if gs.Spec.DataStorageSpec != nil && *gs.Spec.DataStorageSpec.Enabled {
 		volumeMount := corev1.VolumeMount{
 			Name:      "gameserver-data",
 			MountPath: "/data",
@@ -290,8 +297,8 @@ $wait`,
 		dep.Spec.Template.Spec.InitContainers[0].VolumeMounts = append(dep.Spec.Template.Spec.InitContainers[0].VolumeMounts, volumeMount)
 
 		var claimName string
-		if gs.Spec.GameServerDataPVC.Name != nil {
-			claimName = *gs.Spec.GameServerDataPVC.Name
+		if gs.Spec.DataStorageSpec.Name != nil {
+			claimName = *gs.Spec.DataStorageSpec.Name
 		} else {
 			claimName = gs.Name
 		}
@@ -337,18 +344,18 @@ func (r *GameServerReconciler) persistentVolumeClaimForGameServer(gs *gameserver
 	}
 
 	var desiredPVC *corev1.PersistentVolumeClaim
-	if gs.Spec.GameServerDataPVC != nil {
+	if gs.Spec.DataStorageSpec != nil {
 		desiredPVC = &corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      *gs.Spec.GameServerDataPVC.Name, // FIXME: causes invalid nil pointer dereference if not set
+				Name:      *gs.Spec.DataStorageSpec.Name, // FIXME: causes invalid nil pointer dereference if not set
 				Namespace: gs.Namespace,
 			},
 			Spec: corev1.PersistentVolumeClaimSpec{
 				AccessModes: []corev1.PersistentVolumeAccessMode{
 					corev1.ReadWriteOnce,
 				},
-				Resources:        gs.Spec.GameServerDataPVC.Resources,
-				StorageClassName: gs.Spec.GameServerDataPVC.StorageClassName,
+				Resources:        gs.Spec.DataStorageSpec.Resources,
+				StorageClassName: gs.Spec.DataStorageSpec.StorageClassName,
 			},
 		}
 	} else {

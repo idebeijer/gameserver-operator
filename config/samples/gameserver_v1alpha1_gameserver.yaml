@@ -9,16 +9,15 @@ metadata:
     app.kubernetes.io/created-by: gameserver-operator
   name: gameserver-sample
 spec:
-#  image: "gameservermanagers/gameserver:csgo"
-  image: "gameservermanagers/gameserver:pz"
-#  linuxGSMConfig:
-#    existingConfigMap:
-#      key: linuxgsm-config
-  useHostNetwork: false
-  gameServerDataPVC:
+  image: "gameservermanagers/gameserver:vh"
+  dataStorageSpec:
     enabled: true
-    storageClassName: "longhorn"
-    name: gameserver-data # TODO: not setting this causes invalid nil pointer dereference
+    storageClassName: "local-path"
+    name: gameserver-data
     resources:
       requests:
         storage: 50Gi
+  ports:
+    - containerPort: 2456
+      protocol: "UDP"
+      hostPort: 2456
