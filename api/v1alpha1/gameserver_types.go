@@ -73,6 +73,11 @@ type GameServerSpec struct {
 	// +optional
 	Service *ServiceSpec `json:"service,omitempty"`
 
+	// Resources defines resource requests and limits for the primary game server container.
+	// If not specified, Kubernetes scheduler defaults apply.
+	// +optional
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+
 	// SSHSidecar defines the SSH sidecar configuration for remote access.
 	// If not specified or disabled, no SSH sidecar will be created.
 	// +optional

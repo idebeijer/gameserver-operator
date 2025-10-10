@@ -29,7 +29,8 @@ THE SOFTWARE.
 package v1alpha1
 
 import (
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -135,6 +136,11 @@ func (in *GameServerSpec) DeepCopyInto(out *GameServerSpec) {
 		*out = new(ServiceSpec)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.Resources != nil {
+		in, out := &in.Resources, &out.Resources
+		*out = new(v1.ResourceRequirements)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.SSHSidecar != nil {
 		in, out := &in.SSHSidecar, &out.SSHSidecar
 		*out = new(SSHSidecarSpec)
@@ -157,7 +163,7 @@ func (in *GameServerStatus) DeepCopyInto(out *GameServerStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]v1.Condition, len(*in))
+		*out = make([]metav1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

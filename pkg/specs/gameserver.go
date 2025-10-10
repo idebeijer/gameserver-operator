@@ -41,6 +41,17 @@ func BuildLinuxGSMGameServerStatefulSet(gs *gamesv1alpha1.GameServer) *appsv1ac.
 				WithValue("0"),
 		)
 
+	if gs.Spec.Resources != nil {
+		resources := corev1ac.ResourceRequirements()
+		if gs.Spec.Resources.Limits != nil {
+			resources.WithLimits(gs.Spec.Resources.Limits)
+		}
+		if gs.Spec.Resources.Requests != nil {
+			resources.WithRequests(gs.Spec.Resources.Requests)
+		}
+		container.WithResources(resources)
+	}
+
 	if gs.Spec.Service != nil && len(gs.Spec.Service.Ports) > 0 {
 		for _, port := range gs.Spec.Service.Ports {
 			containerPort := port.Port

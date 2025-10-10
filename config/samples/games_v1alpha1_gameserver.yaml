@@ -7,6 +7,13 @@ metadata:
   name: gameserver-sample
 spec:
   gameName: "mc"
+  resources:
+    requests:
+      cpu: "4"
+      memory: "26Gi"
+    limits:
+      cpu: "4"
+      memory: "26Gi"
   service:
     type: LoadBalancer
     ports:
