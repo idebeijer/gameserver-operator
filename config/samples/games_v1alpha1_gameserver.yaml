@@ -1,0 +1,9 @@
+apiVersion: games.idebeijer.github.io/v1alpha1
+kind: GameServer
+metadata:
+  labels:
+    app.kubernetes.io/name: gameserver-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: gameserver-sample
+spec:
+  gameName: "mc"
