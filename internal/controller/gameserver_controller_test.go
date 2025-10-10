@@ -55,11 +55,17 @@ var _ = Describe("GameServer Controller", func() {
 			err := k8sClient.Get(ctx, typeNamespacedName, gameserver)
 			if err != nil && errors.IsNotFound(err) {
 				resource := &gamesv1alpha1.GameServer{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "games.idebeijer.github.io/v1alpha1",
+						Kind:       "GameServer",
+					},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
+					Spec: gamesv1alpha1.GameServerSpec{
+						GameName: "rust",
+					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}

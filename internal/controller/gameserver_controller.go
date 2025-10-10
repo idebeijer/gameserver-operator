@@ -68,14 +68,6 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
-	result, err := r.reconcile(ctx, gs)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	return result, nil
-}
-
-func (r *GameServerReconciler) reconcile(ctx context.Context, gs *gamesv1alpha1.GameServer) (ctrl.Result, error) {
 	if err := r.reconcileGameServer(ctx, gs); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -103,5 +95,16 @@ func (r *GameServerReconciler) getGameServer(ctx context.Context, req ctrl.Reque
 		// Error reading the object, requeue the request.
 		return nil, fmt.Errorf("failed to get GameServer: %w", err)
 	}
+
+	// Ensure TypeMeta is set for owner references
+	// The API server doesn't always populate these fields
+	// TODO: check if this is actually needed or an issue? (lacking support in k8s or fake client?)
+	if gs.APIVersion == "" {
+		gs.APIVersion = gamesv1alpha1.GroupVersion.String()
+	}
+	if gs.Kind == "" {
+		gs.Kind = "GameServer"
+	}
+
 	return gs, nil
 }
