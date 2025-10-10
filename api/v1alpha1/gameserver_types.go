@@ -72,6 +72,11 @@ type GameServerSpec struct {
 	// If not specified, no service will be created.
 	// +optional
 	Service *ServiceSpec `json:"service,omitempty"`
+
+	// SSHSidecar defines the SSH sidecar configuration for remote access.
+	// If not specified or disabled, no SSH sidecar will be created.
+	// +optional
+	SSHSidecar *SSHSidecarSpec `json:"sshSidecar,omitempty"`
 }
 
 type GameConfigs struct {
@@ -155,6 +160,32 @@ type ServicePort struct {
 	// NodePort is the port number to expose on each node in the cluster.
 	// +optional
 	NodePort int32 `json:"nodePort,omitempty"`
+}
+
+// SSHSidecarSpec defines the SSH sidecar configuration for remote access.
+type SSHSidecarSpec struct {
+	// Enabled indicates whether the SSH sidecar is enabled.
+	// If not specified, the SSH sidecar is disabled by default.
+	// +kubebuilder:default=false
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
+
+	// Image is the container image to use for the SSH sidecar.
+	// +kubebuilder:default="linuxserver/openssh-server:latest"
+	// +optional
+	Image string `json:"image,omitempty"`
+
+	// Port is the port number to expose for SSH access.
+	// +kubebuilder:default=2222
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	// +optional
+	Port int32 `json:"port,omitempty"`
+
+	// PublicKeys is a list of SSH public keys to authorize for access.
+	// If not specified, password authentication will be used.
+	// +optional
+	PublicKeys []string `json:"publicKeys,omitempty"`
 }
 
 // GameServerStatus defines the observed state of GameServer.

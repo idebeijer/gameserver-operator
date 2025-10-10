@@ -22,6 +22,8 @@ func BuildLinuxGSMGameServerStatefulSet(gs *gamesv1alpha1.GameServer) *appsv1ac.
 		storageEnabled = *gs.Spec.Storage.Enabled
 	}
 
+	sshSidecarEnabled := gs.Spec.SSHSidecar != nil && gs.Spec.SSHSidecar.Enabled
+
 	container := corev1ac.Container().
 		WithName("gameserver").
 		WithImage(image).
@@ -65,6 +67,105 @@ func BuildLinuxGSMGameServerStatefulSet(gs *gamesv1alpha1.GameServer) *appsv1ac.
 		)
 	}
 
+	// Add shared volume for SSH sidecar
+	if sshSidecarEnabled {
+		container.WithVolumeMounts(
+			corev1ac.VolumeMount().
+				WithName("shared").
+				WithMountPath("/shared"),
+		)
+	}
+
+	podSpec := corev1ac.PodSpec().
+		WithSecurityContext(corev1ac.PodSecurityContext().
+			WithRunAsNonRoot(true).
+			WithRunAsUser(1000).
+			WithRunAsGroup(1000).
+			WithFSGroup(1000).
+			WithFSGroupChangePolicy(v1.FSGroupChangeOnRootMismatch).
+			WithSeccompProfile(corev1ac.SeccompProfile().
+				WithType(v1.SeccompProfileTypeRuntimeDefault),
+			),
+		).
+		WithContainers(container)
+
+	// Add SSH sidecar container if enabled
+	if sshSidecarEnabled {
+		sshImage := "linuxserver/openssh-server:latest"
+		if gs.Spec.SSHSidecar.Image != "" {
+			sshImage = gs.Spec.SSHSidecar.Image
+		}
+
+		sshPort := int32(2222)
+		if gs.Spec.SSHSidecar.Port != 0 {
+			sshPort = gs.Spec.SSHSidecar.Port
+		}
+
+		sshContainer := corev1ac.Container().
+			WithName("ssh-sidecar").
+			WithImage(sshImage).
+			WithImagePullPolicy(v1.PullIfNotPresent).
+			WithPorts(
+				corev1ac.ContainerPort().
+					WithName("ssh").
+					WithContainerPort(sshPort).
+					WithProtocol(v1.ProtocolTCP),
+			).
+			WithVolumeMounts(
+				corev1ac.VolumeMount().
+					WithName("shared").
+					WithMountPath("/shared"),
+			).
+			WithEnv(
+				corev1ac.EnvVar().
+					WithName("PUID").
+					WithValue("1000"),
+				corev1ac.EnvVar().
+					WithName("PGID").
+					WithValue("1000"),
+				corev1ac.EnvVar().
+					WithName("TZ").
+					WithValue("Etc/UTC"),
+				corev1ac.EnvVar().
+					WithName("USER_NAME").
+					WithValue("gameserver"),
+			).
+			WithSecurityContext(corev1ac.SecurityContext().
+				WithAllowPrivilegeEscalation(false).
+				WithCapabilities(corev1ac.Capabilities().
+					WithDrop("ALL"),
+				),
+			)
+
+		if len(gs.Spec.SSHSidecar.PublicKeys) > 0 {
+			publicKeysStr := ""
+			for _, key := range gs.Spec.SSHSidecar.PublicKeys {
+				publicKeysStr += key + "\n"
+			}
+			sshContainer.WithEnv(
+				corev1ac.EnvVar().
+					WithName("PUBLIC_KEY").
+					WithValue(publicKeysStr),
+			)
+		} else {
+			sshContainer.WithEnv(
+				corev1ac.EnvVar().
+					WithName("PASSWORD_ACCESS").
+					WithValue("true"),
+				corev1ac.EnvVar().
+					WithName("USER_PASSWORD").
+					WithValue("changeme"),
+			)
+		}
+
+		podSpec.WithContainers(sshContainer)
+		podSpec.WithVolumes(
+			corev1ac.Volume().
+				WithName("shared").
+				WithEmptyDir(corev1ac.EmptyDirVolumeSource()),
+		)
+	}
+
 	stsSpec := appsv1ac.StatefulSetSpec().
 		WithReplicas(1).
 		WithSelector(metav1ac.LabelSelector().
@@ -81,19 +182,7 @@ func BuildLinuxGSMGameServerStatefulSet(gs *gamesv1alpha1.GameServer) *appsv1ac.
 					"app.kubernetes.io/instance":   gs.Name,
 					"app.kubernetes.io/managed-by": utils.GameServerControllerName,
 				}).
-				WithSpec(corev1ac.PodSpec().
-					WithSecurityContext(corev1ac.PodSecurityContext().
-						WithRunAsNonRoot(true).
-						WithRunAsUser(1000).
-						WithRunAsGroup(1000).
-						WithFSGroup(1000).
-						WithFSGroupChangePolicy(v1.FSGroupChangeOnRootMismatch).
-						WithSeccompProfile(corev1ac.SeccompProfile().
-							WithType(v1.SeccompProfileTypeRuntimeDefault),
-						),
-					).
-					WithContainers(container),
-				),
+				WithSpec(podSpec),
 		)
 
 	if storageEnabled {

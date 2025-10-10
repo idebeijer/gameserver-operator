@@ -147,6 +147,36 @@ spec:
                     - ExternalName
                     type: string
                 type: object
+              sshSidecar:
+                description: |-
+                  SSHSidecar defines the SSH sidecar configuration for remote access.
+                  If not specified or disabled, no SSH sidecar will be created.
+                properties:
+                  enabled:
+                    default: false
+                    description: |-
+                      Enabled indicates whether the SSH sidecar is enabled.
+                      If not specified, the SSH sidecar is disabled by default.
+                    type: boolean
+                  image:
+                    default: linuxserver/openssh-server:latest
+                    description: Image is the container image to use for the SSH sidecar.
+                    type: string
+                  port:
+                    default: 2222
+                    description: Port is the port number to expose for SSH access.
+                    format: int32
+                    maximum: 65535
+                    minimum: 1
+                    type: integer
+                  publicKeys:
+                    description: |-
+                      PublicKeys is a list of SSH public keys to authorize for access.
+                      If not specified, password authentication will be used.
+                    items:
+                      type: string
+                    type: array
+                type: object
               storage:
                 description: |-
                   Storage defines the storage configuration for the game server.

@@ -1,0 +1,30 @@
+apiVersion: games.idebeijer.github.io/v1alpha1
+kind: GameServer
+metadata:
+  labels:
+    app.kubernetes.io/name: gameserver-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: gameserver-with-ssh-sample
+spec:
+  gameName: "mc"
+  service:
+    type: LoadBalancer
+    ports:
+      - name: "game-port"
+        protocol: TCP
+        port: 25565
+      - name: "ssh"
+        protocol: TCP
+        port: 2222
+  sshSidecar:
+    enabled: true
+    port: 2222
+    # Optionally specify custom image (default: linuxserver/openssh-server:latest)
+    # image: "linuxserver/openssh-server:version-9.3_p2-r0"
+    # 
+    # Optionally add SSH public keys for key-based authentication
+    # If publicKeys are not specified, password authentication will be enabled
+    # with username "gameserver" and password "changeme"
+    # publicKeys:
+    #   - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC... user@host"
+    #   - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... user@host"
