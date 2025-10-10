@@ -25,7 +25,9 @@ THE SOFTWARE.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // GameServerSpec defines the desired state of GameServer
@@ -65,6 +67,11 @@ type GameServerSpec struct {
 	// If not specified, a default storage size of 10Gi will be used.
 	// +optional
 	Storage *StorageSpec `json:"storage,omitempty"`
+
+	// Service defines the service configuration for the game server.
+	// If not specified, no service will be created.
+	// +optional
+	Service *ServiceSpec `json:"service,omitempty"`
 }
 
 type GameConfigs struct {
@@ -101,6 +108,53 @@ type StorageSpec struct {
 	// If not specified, the default StorageClass for the cluster will be used.
 	// +optional
 	StorageClassName *string `json:"storageClassName,omitempty"`
+}
+
+// ServiceSpec defines the service configuration for the game server.
+type ServiceSpec struct {
+	// Type is the type of the Kubernetes Service to create for the game server.
+	// Supported types include 'ClusterIP', 'NodePort', and 'LoadBalancer'.
+	// If not specified, 'ClusterIP' will be used.
+	// +kubebuilder:validation:Enum=ClusterIP;NodePort;LoadBalancer;ExternalName
+	// +kubebuilder:default=ClusterIP
+	// +optional
+	Type corev1.ServiceType `json:"type,omitempty"`
+
+	// Ports is a list of ports to expose on the service.
+	// The operator will automatically configure the underlying Pod's containerPorts
+	// based on the targetPort values specified here.
+	// If not specified, no ports will be exposed.
+	// +optional
+	Ports []ServicePort `json:"ports,omitempty"`
+
+	// Annotations is a map of annotations to add to the service.
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
+}
+
+// ServicePort defines a port to be exposed on the game server service.
+type ServicePort struct {
+	// Name is the name of the port.
+	// +optional
+	Name string `json:"name,omitempty"`
+
+	// Protocol is the protocol used by the port. Defaults to UDP.
+	// +kubebuilder:validation:Enum=TCP;UDP
+	// +kubebuilder:default=UDP
+	// +optional
+	Protocol corev1.Protocol `json:"protocol,omitempty"`
+
+	// Port is the port number to expose on the service.
+	Port int32 `json:"port,omitempty"`
+
+	// TargetPort is the port number to forward to on the game server pod.
+	// If not specified, the value of Port will be used.
+	// +optional
+	TargetPort intstr.IntOrString `json:"targetPort,omitempty"`
+
+	// NodePort is the port number to expose on each node in the cluster.
+	// +optional
+	NodePort int32 `json:"nodePort,omitempty"`
 }
 
 // GameServerStatus defines the observed state of GameServer.

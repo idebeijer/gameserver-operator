@@ -7,3 +7,10 @@ metadata:
   name: gameserver-sample
 spec:
   gameName: "mc"
+  service:
+    type: LoadBalancer
+    ports:
+      - name: "game-port"
+        protocol: TCP
+        port: 25567
+        targetPort: 25565

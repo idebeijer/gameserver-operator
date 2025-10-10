@@ -15,6 +15,10 @@ func (r *GameServerReconciler) reconcileGameServer(ctx context.Context, gs *game
 		return err
 	}
 
+	if err := r.reconcileGameServerService(ctx, gs); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -39,6 +43,31 @@ func (r *GameServerReconciler) reconcileLinuxGSMGameServerStatefulSet(ctx contex
 	)
 
 	if err := r.Apply(ctx, stsApply,
+		client.FieldOwner(fieldManagerGameServer),
+		client.ForceOwnership,
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *GameServerReconciler) reconcileGameServerService(ctx context.Context, gs *gamesv1alpha1.GameServer) error {
+	if gs.Spec.Service == nil {
+		return nil
+	}
+
+	svcApply := specs.BuildGameServerService(gs)
+	svcApply.WithOwnerReferences(metav1ac.OwnerReference().
+		WithAPIVersion(gs.APIVersion).
+		WithKind(gs.Kind).
+		WithName(gs.Name).
+		WithUID(gs.UID).
+		WithController(true).
+		WithBlockOwnerDeletion(true),
+	)
+
+	if err := r.Apply(ctx, svcApply,
 		client.FieldOwner(fieldManagerGameServer),
 		client.ForceOwnership,
 	); err != nil {

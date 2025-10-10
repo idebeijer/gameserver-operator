@@ -5,6 +5,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	appsv1ac "k8s.io/client-go/applyconfigurations/apps/v1"
 	corev1ac "k8s.io/client-go/applyconfigurations/core/v1"
 	metav1ac "k8s.io/client-go/applyconfigurations/meta/v1"
@@ -37,6 +38,24 @@ func BuildLinuxGSMGameServerStatefulSet(gs *gamesv1alpha1.GameServer) *appsv1ac.
 				WithName("UPDATE_CHECK").
 				WithValue("0"),
 		)
+
+	if gs.Spec.Service != nil && len(gs.Spec.Service.Ports) > 0 {
+		for _, port := range gs.Spec.Service.Ports {
+			containerPort := port.Port
+			if port.TargetPort.IntVal != 0 {
+				containerPort = port.TargetPort.IntVal
+			} else if port.TargetPort.StrVal != "" {
+				continue
+			}
+
+			container.WithPorts(
+				corev1ac.ContainerPort().
+					WithName(port.Name).
+					WithContainerPort(containerPort).
+					WithProtocol(port.Protocol),
+			)
+		}
+	}
 
 	if storageEnabled {
 		container.WithVolumeMounts(
@@ -107,4 +126,49 @@ func BuildLinuxGSMGameServerStatefulSet(gs *gamesv1alpha1.GameServer) *appsv1ac.
 		WithSpec(stsSpec)
 
 	return sts
+}
+
+func BuildGameServerService(gs *gamesv1alpha1.GameServer) *corev1ac.ServiceApplyConfiguration {
+	if gs.Spec.Service == nil {
+		return nil
+	}
+
+	servicePorts := make([]*corev1ac.ServicePortApplyConfiguration, 0, len(gs.Spec.Service.Ports))
+	for _, port := range gs.Spec.Service.Ports {
+		targetPort := port.TargetPort
+		if targetPort.IntVal == 0 && targetPort.StrVal == "" {
+			targetPort = intstr.FromInt32(port.Port)
+		}
+
+		servicePort := corev1ac.ServicePort().
+			WithName(port.Name).
+			WithProtocol(port.Protocol).
+			WithPort(port.Port).
+			WithTargetPort(targetPort)
+
+		if port.NodePort != 0 {
+			servicePort.WithNodePort(port.NodePort)
+		}
+
+		servicePorts = append(servicePorts, servicePort)
+	}
+
+	svc := corev1ac.Service(gs.Name, gs.Namespace).
+		WithLabels(map[string]string{
+			"app.kubernetes.io/name":       utils.GameServerOperatorName,
+			"app.kubernetes.io/instance":   gs.Name,
+			"app.kubernetes.io/managed-by": utils.GameServerControllerName,
+		}).
+		WithAnnotations(gs.Spec.Service.Annotations).
+		WithSpec(corev1ac.ServiceSpec().
+			WithType(gs.Spec.Service.Type).
+			WithSelector(map[string]string{
+				"app.kubernetes.io/name":       utils.GameServerOperatorName,
+				"app.kubernetes.io/instance":   gs.Name,
+				"app.kubernetes.io/managed-by": utils.GameServerControllerName,
+			}).
+			WithPorts(servicePorts...),
+		)
+
+	return svc
 }

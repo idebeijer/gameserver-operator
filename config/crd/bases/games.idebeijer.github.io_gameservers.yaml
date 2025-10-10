@@ -83,6 +83,70 @@ spec:
                 format: int32
                 minimum: 0
                 type: integer
+              service:
+                description: |-
+                  Service defines the service configuration for the game server.
+                  If not specified, no service will be created.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Annotations is a map of annotations to add to the
+                      service.
+                    type: object
+                  ports:
+                    description: |-
+                      Ports is a list of ports to expose on the service.
+                      The operator will automatically configure the underlying Pod's containerPorts
+                      based on the targetPort values specified here.
+                      If not specified, no ports will be exposed.
+                    items:
+                      description: ServicePort defines a port to be exposed on the
+                        game server service.
+                      properties:
+                        name:
+                          description: Name is the name of the port.
+                          type: string
+                        nodePort:
+                          description: NodePort is the port number to expose on each
+                            node in the cluster.
+                          format: int32
+                          type: integer
+                        port:
+                          description: Port is the port number to expose on the service.
+                          format: int32
+                          type: integer
+                        protocol:
+                          default: UDP
+                          description: Protocol is the protocol used by the port.
+                            Defaults to UDP.
+                          enum:
+                          - TCP
+                          - UDP
+                          type: string
+                        targetPort:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          description: |-
+                            TargetPort is the port number to forward to on the game server pod.
+                            If not specified, the value of Port will be used.
+                          x-kubernetes-int-or-string: true
+                      type: object
+                    type: array
+                  type:
+                    default: ClusterIP
+                    description: |-
+                      Type is the type of the Kubernetes Service to create for the game server.
+                      Supported types include 'ClusterIP', 'NodePort', and 'LoadBalancer'.
+                      If not specified, 'ClusterIP' will be used.
+                    enum:
+                    - ClusterIP
+                    - NodePort
+                    - LoadBalancer
+                    - ExternalName
+                    type: string
+                type: object
               storage:
                 description: |-
                   Storage defines the storage configuration for the game server.
