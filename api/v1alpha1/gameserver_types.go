@@ -60,6 +60,11 @@ type GameServerSpec struct {
 	// +kubebuilder:default=1
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
+
+	// Storage defines the storage configuration for the game server.
+	// If not specified, a default storage size of 10Gi will be used.
+	// +optional
+	Storage *StorageSpec `json:"storage,omitempty"`
 }
 
 type GameConfigs struct {
@@ -76,6 +81,26 @@ type MinecraftConfig struct {
 	// Mods is a list of mods to be installed on the Minecraft server.
 	// +optional
 	Mods []string `json:"mods,omitempty"`
+}
+
+// StorageSpec defines the storage configuration for the game server.
+type StorageSpec struct {
+	// Enabled indicates whether persistent storage is enabled for the game server.
+	// If not specified, storage is enabled by default.
+	// +kubebuilder:default=true
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Size is the size of the persistent volume claim for the game server data.
+	// +kubebuilder:validation:Pattern=`^\d+Gi$`
+	// +kubebuilder:default="10Gi"
+	// +optional
+	Size string `json:"size,omitempty"`
+
+	// StorageClassName is the name of the StorageClass to use for the persistent volume claim.
+	// If not specified, the default StorageClass for the cluster will be used.
+	// +optional
+	StorageClassName *string `json:"storageClassName,omitempty"`
 }
 
 // GameServerStatus defines the observed state of GameServer.

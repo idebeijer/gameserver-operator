@@ -19,6 +19,15 @@ func (r *GameServerReconciler) reconcileGameServer(ctx context.Context, gs *game
 }
 
 func (r *GameServerReconciler) reconcileGameServerStatefulSet(ctx context.Context, gs *gamesv1alpha1.GameServer) error {
+	switch gs.Spec.Manager {
+	case "LinuxGSM":
+		return r.reconcileLinuxGSMGameServerStatefulSet(ctx, gs)
+	default:
+		return nil
+	}
+}
+
+func (r *GameServerReconciler) reconcileLinuxGSMGameServerStatefulSet(ctx context.Context, gs *gamesv1alpha1.GameServer) error {
 	stsApply := specs.BuildLinuxGSMGameServerStatefulSet(gs)
 	stsApply.WithOwnerReferences(metav1ac.OwnerReference().
 		WithAPIVersion(gs.APIVersion).
