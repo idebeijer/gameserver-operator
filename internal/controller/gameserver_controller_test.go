@@ -46,7 +46,7 @@ var _ = Describe("GameServer Controller", func() {
 
 		typeNamespacedName := types.NamespacedName{
 			Name:      resourceName,
-			Namespace: "default", // TODO(user):Modify as needed
+			Namespace: "default",
 		}
 		gameserver := &gamesv1alpha1.GameServer{}
 
