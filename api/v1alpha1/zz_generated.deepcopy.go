@@ -121,11 +121,6 @@ func (in *GameServerSpec) DeepCopyInto(out *GameServerSpec) {
 		*out = new(GameConfigs)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.Replicas != nil {
-		in, out := &in.Replicas, &out.Replicas
-		*out = new(int32)
-		**out = **in
-	}
 	if in.Storage != nil {
 		in, out := &in.Storage, &out.Storage
 		*out = new(StorageSpec)

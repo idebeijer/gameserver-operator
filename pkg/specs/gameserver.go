@@ -177,8 +177,14 @@ func BuildLinuxGSMGameServerStatefulSet(gs *gamesv1alpha1.GameServer) *appsv1ac.
 		)
 	}
 
+	// Force replica to be 1 or 0
+	replicaCount := int32(1)
+	if gs.Spec.Replicas == 0 {
+		replicaCount = 0
+	}
+
 	stsSpec := appsv1ac.StatefulSetSpec().
-		WithReplicas(1).
+		WithReplicas(replicaCount).
 		WithSelector(metav1ac.LabelSelector().
 			WithMatchLabels(map[string]string{
 				"app.kubernetes.io/name":       utils.GameServerOperatorName,

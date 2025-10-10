@@ -61,7 +61,7 @@ type GameServerSpec struct {
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:default=1
 	// +optional
-	Replicas *int32 `json:"replicas,omitempty"`
+	Replicas int32 `json:"replicas,omitempty"`
 
 	// Storage defines the storage configuration for the game server.
 	// If not specified, a default storage size of 10Gi will be used.
