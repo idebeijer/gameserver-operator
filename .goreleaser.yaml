@@ -2,6 +2,8 @@
 
 version: 2
 
+dist: dist/goreleaser
+
 builds:
   - id: manager
     main: cmd/main.go
