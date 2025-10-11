@@ -15,16 +15,30 @@ import (
 )
 
 func BuildLinuxGSMGameServerStatefulSet(gs *gamesv1alpha1.GameServer) *appsv1ac.StatefulSetApplyConfiguration {
-	image := fmt.Sprintf("gameservermanagers/gameserver:%s", gs.Spec.GameName)
+	storageEnabled := linuxGSMStorageEnabled(gs)
+	container := buildLinuxGSMContainer(gs, storageEnabled)
+	podSpec := buildLinuxGSMPodSpec(container)
+	stsSpec := buildLinuxGSMStatefulSetSpec(gs, podSpec, storageEnabled)
 
-	storageEnabled := true
+	sts := appsv1ac.StatefulSet(gs.Name, gs.Namespace).
+		WithLabels(map[string]string{}).
+		WithAnnotations(map[string]string{}).
+		WithSpec(stsSpec)
+
+	return sts
+}
+
+func linuxGSMStorageEnabled(gs *gamesv1alpha1.GameServer) bool {
 	if gs.Spec.Storage != nil && gs.Spec.Storage.Enabled != nil {
-		storageEnabled = *gs.Spec.Storage.Enabled
+		return *gs.Spec.Storage.Enabled
 	}
+	return true
+}
 
+func buildLinuxGSMContainer(gs *gamesv1alpha1.GameServer, storageEnabled bool) *corev1ac.ContainerApplyConfiguration {
 	container := corev1ac.Container().
 		WithName("gameserver").
-		WithImage(image).
+		WithImage(fmt.Sprintf("gameservermanagers/gameserver:%s", gs.Spec.GameName)).
 		WithImagePullPolicy(v1.PullIfNotPresent).
 		WithSecurityContext(corev1ac.SecurityContext().
 			WithAllowPrivilegeEscalation(false).
@@ -50,7 +64,7 @@ func BuildLinuxGSMGameServerStatefulSet(gs *gamesv1alpha1.GameServer) *appsv1ac.
 		container.WithResources(resources)
 	}
 
-	if gs.Spec.Service != nil && len(gs.Spec.Service.Ports) > 0 {
+	if gs.Spec.Service != nil {
 		for _, port := range gs.Spec.Service.Ports {
 			containerPort := port.Port
 			if port.TargetPort.IntVal != 0 {
@@ -76,7 +90,11 @@ func BuildLinuxGSMGameServerStatefulSet(gs *gamesv1alpha1.GameServer) *appsv1ac.
 		)
 	}
 
-	podSpec := corev1ac.PodSpec().
+	return container
+}
+
+func buildLinuxGSMPodSpec(container *corev1ac.ContainerApplyConfiguration) *corev1ac.PodSpecApplyConfiguration {
+	return corev1ac.PodSpec().
 		WithSecurityContext(corev1ac.PodSecurityContext().
 			WithRunAsNonRoot(true).
 			WithRunAsUser(1000).
@@ -88,8 +106,9 @@ func BuildLinuxGSMGameServerStatefulSet(gs *gamesv1alpha1.GameServer) *appsv1ac.
 			),
 		).
 		WithContainers(container)
+}
 
-	// Force replica to be 1 or 0
+func buildLinuxGSMStatefulSetSpec(gs *gamesv1alpha1.GameServer, podSpec *corev1ac.PodSpecApplyConfiguration, storageEnabled bool) *appsv1ac.StatefulSetSpecApplyConfiguration {
 	replicaCount := int32(1)
 	if gs.Spec.Replicas == 0 {
 		replicaCount = 0
@@ -98,52 +117,49 @@ func BuildLinuxGSMGameServerStatefulSet(gs *gamesv1alpha1.GameServer) *appsv1ac.
 	stsSpec := appsv1ac.StatefulSetSpec().
 		WithReplicas(replicaCount).
 		WithSelector(metav1ac.LabelSelector().
-			WithMatchLabels(map[string]string{
-				"app.kubernetes.io/name":       utils.GameServerOperatorName,
-				"app.kubernetes.io/instance":   gs.Name,
-				"app.kubernetes.io/managed-by": utils.GameServerControllerName,
-			}),
+			WithMatchLabels(gameServerLabels(gs)),
 		).
 		WithTemplate(
 			corev1ac.PodTemplateSpec().
-				WithLabels(map[string]string{
-					"app.kubernetes.io/name":       utils.GameServerOperatorName,
-					"app.kubernetes.io/instance":   gs.Name,
-					"app.kubernetes.io/managed-by": utils.GameServerControllerName,
-				}).
+				WithLabels(gameServerLabels(gs)).
 				WithSpec(podSpec),
 		)
 
 	if storageEnabled {
-		storageSize := "10Gi"
-		if gs.Spec.Storage != nil && gs.Spec.Storage.Size != "" {
-			storageSize = gs.Spec.Storage.Size
-		}
-
-		pvcSpec := corev1ac.PersistentVolumeClaimSpec().
-			WithAccessModes(v1.ReadWriteOnce).
-			WithResources(corev1ac.VolumeResourceRequirements().
-				WithRequests(v1.ResourceList{
-					v1.ResourceStorage: resource.MustParse(storageSize),
-				}),
-			)
-
-		if gs.Spec.Storage != nil && gs.Spec.Storage.StorageClassName != nil {
-			pvcSpec.WithStorageClassName(*gs.Spec.Storage.StorageClassName)
-		}
-
-		stsSpec.WithVolumeClaimTemplates(
-			corev1ac.PersistentVolumeClaim("data", gs.Namespace).
-				WithSpec(pvcSpec),
-		)
+		stsSpec.WithVolumeClaimTemplates(buildLinuxGSMVolumeClaimTemplate(gs))
 	}
 
-	sts := appsv1ac.StatefulSet(gs.Name, gs.Namespace).
-		WithLabels(map[string]string{}).
-		WithAnnotations(map[string]string{}).
-		WithSpec(stsSpec)
+	return stsSpec
+}
 
-	return sts
+func buildLinuxGSMVolumeClaimTemplate(gs *gamesv1alpha1.GameServer) *corev1ac.PersistentVolumeClaimApplyConfiguration {
+	storageSize := "10Gi"
+	if gs.Spec.Storage != nil && gs.Spec.Storage.Size != "" {
+		storageSize = gs.Spec.Storage.Size
+	}
+
+	pvcSpec := corev1ac.PersistentVolumeClaimSpec().
+		WithAccessModes(v1.ReadWriteOnce).
+		WithResources(corev1ac.VolumeResourceRequirements().
+			WithRequests(v1.ResourceList{
+				v1.ResourceStorage: resource.MustParse(storageSize),
+			}),
+		)
+
+	if gs.Spec.Storage != nil && gs.Spec.Storage.StorageClassName != nil {
+		pvcSpec.WithStorageClassName(*gs.Spec.Storage.StorageClassName)
+	}
+
+	return corev1ac.PersistentVolumeClaim("data", gs.Namespace).
+		WithSpec(pvcSpec)
+}
+
+func gameServerLabels(gs *gamesv1alpha1.GameServer) map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/name":       utils.GameServerOperatorName,
+		"app.kubernetes.io/instance":   gs.Name,
+		"app.kubernetes.io/managed-by": utils.GameServerControllerName,
+	}
 }
 
 func BuildGameServerService(gs *gamesv1alpha1.GameServer) *corev1ac.ServiceApplyConfiguration {
@@ -172,19 +188,11 @@ func BuildGameServerService(gs *gamesv1alpha1.GameServer) *corev1ac.ServiceApply
 	}
 
 	svc := corev1ac.Service(gs.Name, gs.Namespace).
-		WithLabels(map[string]string{
-			"app.kubernetes.io/name":       utils.GameServerOperatorName,
-			"app.kubernetes.io/instance":   gs.Name,
-			"app.kubernetes.io/managed-by": utils.GameServerControllerName,
-		}).
+		WithLabels(gameServerLabels(gs)).
 		WithAnnotations(gs.Spec.Service.Annotations).
 		WithSpec(corev1ac.ServiceSpec().
 			WithType(gs.Spec.Service.Type).
-			WithSelector(map[string]string{
-				"app.kubernetes.io/name":       utils.GameServerOperatorName,
-				"app.kubernetes.io/instance":   gs.Name,
-				"app.kubernetes.io/managed-by": utils.GameServerControllerName,
-			}).
+			WithSelector(gameServerLabels(gs)).
 			WithPorts(servicePorts...),
 		)
 
