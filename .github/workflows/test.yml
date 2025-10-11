@@ -30,8 +30,10 @@ jobs:
           go mod tidy
           make test
 
-      - name: Test summary
-        uses: test-summary/action@v2
+      - uses: dorny/test-reporter@v2
+        if: ${{ !cancelled() }}
         with:
-          paths: "test-results/unit-tests.xml"
-        if: ${{ always() }}
+          name: Unit Tests
+          path: test-results/*.xml
+          reporter: java-junit
+          use-actions-summary: true
