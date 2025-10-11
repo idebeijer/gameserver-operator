@@ -108,7 +108,10 @@ func buildLinuxGSMPodSpec(container *corev1ac.ContainerApplyConfiguration) *core
 		WithContainers(container)
 }
 
-func buildLinuxGSMStatefulSetSpec(gs *gamesv1alpha1.GameServer, podSpec *corev1ac.PodSpecApplyConfiguration, storageEnabled bool) *appsv1ac.StatefulSetSpecApplyConfiguration {
+func buildLinuxGSMStatefulSetSpec(gs *gamesv1alpha1.GameServer,
+	podSpec *corev1ac.PodSpecApplyConfiguration,
+	storageEnabled bool,
+) *appsv1ac.StatefulSetSpecApplyConfiguration {
 	replicaCount := int32(1)
 	if gs.Spec.Replicas == 0 {
 		replicaCount = 0
