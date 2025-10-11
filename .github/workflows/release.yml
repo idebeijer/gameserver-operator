@@ -51,3 +51,32 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  helm:
+    runs-on: ubuntu-latest
+    needs: goreleaser
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Package Helm chart
+        run: |
+          # get tag and strip leading 'v' if present
+          TAG=${GIT_REF#refs/tags/}
+          CLEAN_TAG=${TAG#v}
+          echo "Packaging chart with version/appVersion=${CLEAN_TAG}"
+          mkdir -p dist
+          helm package ./dist/chart --destination ./dist/chartrelease --version "${CLEAN_TAG}" --app-version "${CLEAN_TAG}"
+
+      - name: Login to GHCR (GitHub Container Registry)
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
+
+      - name: Push chart to GHCR (OCI)
+        run: |
+          CHART_TGZ=$(ls ./dist/chartrelease/*.tgz | head -n1)
+          echo "pushing $CHART_TGZ to ghcr.io/${{ github.repository_owner }}/charts"
+          helm push "$CHART_TGZ" oci://ghcr.io/${{ github.repository_owner }}/charts
