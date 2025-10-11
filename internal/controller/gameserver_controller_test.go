@@ -29,13 +29,16 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	gamesv1alpha1 "github.com/idebeijer/gameserver-operator/api/v1alpha1"
+	"github.com/idebeijer/gameserver-operator/pkg/specs"
 )
 
 var _ = Describe("GameServer Controller", func() {
@@ -94,5 +97,53 @@ var _ = Describe("GameServer Controller", func() {
 			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
 			// Example: If you expect a certain status condition after reconciliation, verify it here.
 		})
+
+		It("creates the StatefulSet and records managedFields owner", func() {
+			gs := newGameServer(func(gs *gamesv1alpha1.GameServer) {
+				gs.Spec.Manager = "LinuxGSM"
+			})
+			ac := specs.BuildLinuxGSMGameServerStatefulSet(gs)
+
+			Expect(k8sClient.Apply(ctx, ac,
+				ctrlclient.FieldOwner(fieldManagerGameServer),
+				ctrlclient.ForceOwnership,
+			)).To(Succeed())
+
+			var sts appsv1.StatefulSet
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: gs.Name, Namespace: gs.Namespace}, &sts)).To(Succeed())
+			Expect(*sts.Spec.Replicas).To(Equal(int32(1)))
+			Expect(sts.Spec.Template.Spec.Containers[0].Image).To(ContainSubstring("gameservermanagers/gameserver"))
+
+			Expect(sts.ObjectMeta.ManagedFields).To(HaveLen(1))
+
+			By("verifying managedFields ownership")
+			found := false
+			for _, mf := range sts.ManagedFields {
+				if mf.Manager == fieldManagerGameServer && mf.Operation == metav1.ManagedFieldsOperationApply {
+					found = true
+					break
+				}
+			}
+			Expect(found).To(BeTrue(), "expected managedFields entry for %q", fieldManagerGameServer)
+		})
 	})
 })
+
+func newGameServer(overrides ...func(*gamesv1alpha1.GameServer)) *gamesv1alpha1.GameServer {
+	gs := &gamesv1alpha1.GameServer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "example",
+			Namespace: "default",
+		},
+		Spec: gamesv1alpha1.GameServerSpec{
+			GameName: "valheim",
+			Replicas: 1,
+		},
+	}
+
+	for _, override := range overrides {
+		override(gs)
+	}
+
+	return gs
+}

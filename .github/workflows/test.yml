@@ -29,3 +29,9 @@ jobs:
         run: |
           go mod tidy
           make test
+
+      - name: Test summary
+        uses: test-summary/action@v2
+        with:
+          paths: "test-results/unit-tests.xml"
+        if: ${{ always() }}
