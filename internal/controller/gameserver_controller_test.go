@@ -1,0 +1,149 @@
+/*
+The MIT License (MIT)
+
+Copyright © 2025 Igor de Beijer
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+
+package controller
+
+import (
+	"context"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	gamesv1alpha1 "github.com/idebeijer/gameserver-operator/api/v1alpha1"
+	"github.com/idebeijer/gameserver-operator/pkg/specs"
+)
+
+var _ = Describe("GameServer Controller", func() {
+	Context("When reconciling a resource", func() {
+		const resourceName = "test-resource"
+
+		ctx := context.Background()
+
+		typeNamespacedName := types.NamespacedName{
+			Name:      resourceName,
+			Namespace: "default",
+		}
+		gameserver := &gamesv1alpha1.GameServer{}
+
+		BeforeEach(func() {
+			By("creating the custom resource for the Kind GameServer")
+			err := k8sClient.Get(ctx, typeNamespacedName, gameserver)
+			if err != nil && errors.IsNotFound(err) {
+				resource := &gamesv1alpha1.GameServer{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "games.idebeijer.github.io/v1alpha1",
+						Kind:       "GameServer",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      resourceName,
+						Namespace: "default",
+					},
+					Spec: gamesv1alpha1.GameServerSpec{
+						GameName: "rust",
+					},
+				}
+				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
+			}
+		})
+
+		AfterEach(func() {
+			// TODO(user): Cleanup logic after each test, like removing the resource instance.
+			resource := &gamesv1alpha1.GameServer{}
+			err := k8sClient.Get(ctx, typeNamespacedName, resource)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Cleanup the specific resource instance GameServer")
+			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
+		})
+		It("should successfully reconcile the resource", func() {
+			By("Reconciling the created resource")
+			controllerReconciler := &GameServerReconciler{
+				Client: k8sClient,
+				Scheme: k8sClient.Scheme(),
+			}
+
+			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
+			// Example: If you expect a certain status condition after reconciliation, verify it here.
+		})
+
+		It("creates the StatefulSet and records managedFields owner", func() {
+			gs := newGameServer(func(gs *gamesv1alpha1.GameServer) {
+				gs.Spec.Manager = "LinuxGSM"
+			})
+			ac := specs.BuildLinuxGSMGameServerStatefulSet(gs)
+
+			Expect(k8sClient.Apply(ctx, ac,
+				ctrlclient.FieldOwner(fieldManagerGameServer),
+				ctrlclient.ForceOwnership,
+			)).To(Succeed())
+
+			var sts appsv1.StatefulSet
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: gs.Name, Namespace: gs.Namespace}, &sts)).To(Succeed())
+			Expect(*sts.Spec.Replicas).To(Equal(int32(1)))
+			Expect(sts.Spec.Template.Spec.Containers[0].Image).To(ContainSubstring("gameservermanagers/gameserver"))
+
+			Expect(sts.ObjectMeta.ManagedFields).To(HaveLen(1))
+
+			By("verifying managedFields ownership")
+			found := false
+			for _, mf := range sts.ManagedFields {
+				if mf.Manager == fieldManagerGameServer && mf.Operation == metav1.ManagedFieldsOperationApply {
+					found = true
+					break
+				}
+			}
+			Expect(found).To(BeTrue(), "expected managedFields entry for %q", fieldManagerGameServer)
+		})
+	})
+})
+
+func newGameServer(overrides ...func(*gamesv1alpha1.GameServer)) *gamesv1alpha1.GameServer {
+	gs := &gamesv1alpha1.GameServer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "example",
+			Namespace: "default",
+		},
+		Spec: gamesv1alpha1.GameServerSpec{
+			GameName: "valheim",
+			Replicas: 1,
+		},
+	}
+
+	for _, override := range overrides {
+		override(gs)
+	}
+
+	return gs
+}

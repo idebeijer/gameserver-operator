@@ -1,0 +1,23 @@
+apiVersion: games.idebeijer.github.io/v1alpha1
+kind: GameServer
+metadata:
+  labels:
+    app.kubernetes.io/name: gameserver-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: gameserver-sample
+spec:
+  gameName: "mc"
+  resources:
+    requests:
+      cpu: "4"
+      memory: "26Gi"
+    limits:
+      cpu: "4"
+      memory: "26Gi"
+  service:
+    type: LoadBalancer
+    ports:
+      - name: "game-port"
+        protocol: TCP
+        port: 25567
+        targetPort: 25565
