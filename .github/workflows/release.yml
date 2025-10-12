@@ -65,7 +65,7 @@ jobs:
       - name: Package Helm chart
         run: |
           # get tag and strip leading 'v' if present
-          TAG=${GIT_REF#refs/tags/}
+          TAG="${{ github.ref_name }}"
           CLEAN_TAG=${TAG#v}
           echo "Packaging chart with version/appVersion=${CLEAN_TAG}"
           mkdir -p dist
