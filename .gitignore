@@ -6,6 +6,9 @@
 *.dylib
 bin/*
 Dockerfile.cross
+dist/*
+# keep generated Helm chart
+!/dist/chart
 
 # Test binary, built with `go test -c`
 *.test

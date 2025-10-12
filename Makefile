@@ -143,6 +143,10 @@ docker-buildx: ## Build and push docker image for the manager for cross-platform
 	- $(CONTAINER_TOOL) buildx rm gameserver-operator-builder
 	rm Dockerfile.cross
 
+.PHONY: goreleaser-release-snapshot
+goreleaser-release-snapshot: ## Build a snapshot release locally with goreleaser (does not publish).
+	goreleaser release --snapshot --clean
+
 .PHONY: build-installer
 build-installer: manifests generate kustomize ## Generate a consolidated YAML with CRDs and deployment.
 	mkdir -p dist
