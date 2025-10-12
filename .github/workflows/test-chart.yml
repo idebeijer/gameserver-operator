@@ -34,10 +34,10 @@ jobs:
           make docker-build IMG=gameserver-operator:v0.1.0
           kind load docker-image gameserver-operator:v0.1.0
 
-      - name: Install Helm
-        run: |
-          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.4
       - name: Verify Helm installation
         run: helm version
 
