@@ -34,13 +34,11 @@ dockers_v2:
       - "{{ .Version }}"
     labels:
       "org.opencontainers.image.created": "{{ .Date }}"
-      "org.opencontainers.image.authors": "Igor de Beijer"
       "org.opencontainers.image.url": "https://github.com/idebeijer/gameserver-operator"
       "org.opencontainers.image.documentation": "https://github.com/idebeijer/gameserver-operator/blob/main/README.md"
       "org.opencontainers.image.source": "{{ .GitURL }}"
       "org.opencontainers.image.version": "{{ .Version }}"
       "org.opencontainers.image.revision": "{{ .FullCommit }}"
-      "org.opencontainers.image.vendor": "idebeijer"
       "org.opencontainers.image.licenses": "MIT"
       "org.opencontainers.image.title": "{{ .ProjectName }}"
       "org.opencontainers.image.description": "Kubernetes operator for managing game servers"
