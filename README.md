@@ -1,134 +1,122 @@
-# gameserver-operator
+<div align="center">
 
-// TODO(user): Add simple overview of use/purpose
+  <h1>GameServer Operator</h1>
 
-## Description
+**A Kubernetes operator for managing game servers with security and simplicity in mind**
 
-// TODO(user): An in-depth paragraph about your project and overview of use
+[![License](https://img.shields.io/github/license/idebeijer/gameserver-operator?style=for-the-badge)](https://github.com/idebeijer/gameserver-operator/blob/main/LICENSE)
+[![Release](https://img.shields.io/github/v/release/idebeijer/gameserver-operator?style=for-the-badge)](https://github.com/idebeijer/gameserver-operator/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/idebeijer/gameserver-operator?style=for-the-badge)](https://goreportcard.com/report/github.com/idebeijer/gameserver-operator)
+[![CI](https://img.shields.io/github/actions/workflow/status/idebeijer/gameserver-operator/test.yml?branch=main&style=for-the-badge)](https://github.com/idebeijer/gameserver-operator/actions)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/idebeijer/gameserver-operator?style=for-the-badge)](https://go.dev/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-1.22+-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 
-## Getting Started
+</div>
 
-### Prerequisites
+## Overview
 
-- go version v1.24.0+
-- docker version 17.03+.
-- kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster.
+GameServer Operator provides a single Kubernetes API for deploying and managing more than 270 game servers through [LinuxGSM](https://linuxgsm.com/). A `GameServer` custom resource defines the game, storage, and networking while the operator handles container lifecycle, configuration, and service exposure.
 
-### To Deploy on the cluster
+## Features
 
-**Build and push your image to the location specified by `IMG`:**
+- **Universal game support** – Deploy any LinuxGSM-supported game server using a single CRD.
+- **Security-first defaults** – Non-root user, restricted capabilities, seccomp profile, and no privilege escalation.
 
-```sh
-make docker-build docker-push IMG=<some-registry>/gameserver-operator:tag
+## Requirements
+
+- Kubernetes 1.22+ (operator uses [Server-Side Apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/)).
+- Helm 3.8+.
+- `kubectl` configured for the target cluster.
+
+## Installation
+
+### Helm (recommended)
+
+```bash
+helm install gameserver-operator \
+  oci://ghcr.io/idebeijer/charts/gameserver-operator \
+  --namespace gameserver-operator-system \
+  --create-namespace
 ```
 
-**NOTE:** This image ought to be published in the personal registry you specified.
-And it is required to have access to pull the image from the working environment.
-Make sure you have the proper permission to the registry if the above commands don’t work.
+### From source
 
-**Install the CRDs into the cluster:**
-
-```sh
-make install
+```bash
+make docker-build docker-push IMG=<registry>/gameserver-operator:<tag>
+make deploy IMG=<registry>/gameserver-operator:<tag>
 ```
 
-**Deploy the Manager to the cluster with the image specified by `IMG`:**
+The first command builds and pushes an image that matches any local changes; the second command deploys that image and installs the CRDs into the target cluster.
 
-```sh
-make deploy IMG=<some-registry>/gameserver-operator:tag
+## Quick Start
+
+1. Install the operator using the [Helm chart](#helm-recommended) or `make deploy`.
+2. Apply a `GameServer` manifest that describes the game you want to run.
+
+### Example: Minecraft server
+
+```yaml
+apiVersion: games.idebeijer.github.io/v1alpha1
+kind: GameServer
+metadata:
+  name: my-minecraft-server
+spec:
+  gameName: mc
+  service:
+    type: LoadBalancer
+    ports:
+      - name: game
+        port: 25565
+        protocol: TCP
+  storage:
+    size: 20Gi
 ```
 
-> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
-> privileges or be logged in as admin.
+Apply these manifests with `kubectl apply -f <file>` (or `-` for stdin).
 
-**Create instances of your solution**
-You can apply the samples (examples) from the config/sample:
+## Development Workflow
 
-```sh
-kubectl apply -k config/samples/
+```bash
+make install        # Install or update CRDs in the active kubecontext
+make run            # Run the controller locally against cluster in kubeconfig
+make deploy IMG=... # Build manifests and deploy the manager to the cluster
+make undeploy       # Remove the manager and associated resources
 ```
 
-> **NOTE**: Ensure that the samples has default values to test it out.
+More details in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
-### To Uninstall
+## Documentation
 
-**Delete the instances (CRs) from the cluster:**
+Additional examples and configuration snippets live in the [`config/samples`](./config/samples) directory. The [`pkg/specs`](./pkg/specs) package contains the programmatic representation of supported options.
 
-```sh
-kubectl delete -k config/samples/
-```
+## Known Limitations
 
-**Delete the APIs(CRDs) from the cluster:**
+- Some actions might be unsupported due to security restrictions. To name a few:
+  - Binding to ports below 1024.
+  - Games that require `CAP_NET_ADMIN` or `CAP_SYS_ADMIN` will not work due to dropped capabilities.
+  - LinuxGSM cron-based automations (updates, backups) are disabled under the default security profile. (working on a k8s native solution)
 
-```sh
-make uninstall
-```
+Those limitations are intentional to maintain a secure default. If it appears that a game cannot run under these restrictions, please open an issue.
+Otherwise, in the future the `GameServer` spec may include options for customizing security settings per game.
 
-**UnDeploy the controller from the cluster:**
+## Stability and API Changes
 
-```sh
-make undeploy
-```
+⚠️ **Major version zero (v0.x.x).** The CRDs and APIs may change between releases and backwards compatibility is not guaranteed.
 
-## Project Distribution
+## Roadmap
 
-Following the options to release and provide this solution to the users.
-
-### By providing a bundle with all YAML files
-
-1. Build the installer for the image built and published in the registry:
-
-```sh
-make build-installer IMG=<some-registry>/gameserver-operator:tag
-```
-
-**NOTE:** The makefile target mentioned above generates an 'install.yaml'
-file in the dist directory. This file contains all the resources built
-with Kustomize, which are necessary to install this project without its
-dependencies.
-
-2. Using the installer
-
-Users can just run 'kubectl apply -f <URL for YAML BUNDLE>' to install
-the project, i.e.:
-
-```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/gameserver-operator/<tag or branch>/dist/install.yaml
-```
-
-### By providing a Helm Chart
-
-1. Build the chart using the optional helm plugin
-
-```sh
-kubebuilder edit --plugins=helm/v1-alpha
-```
-
-2. See that a chart was generated under 'dist/chart', and users
-   can obtain this solution from there.
-
-**NOTE:** If you change the project, you need to update the Helm Chart
-using the same command above to sync the latest changes. Furthermore,
-if you create webhooks, you need to use the above command with
-the '--force' flag and manually ensure that any custom configuration
-previously added to 'dist/chart/values.yaml' or 'dist/chart/manager/manager.yaml'
-is manually re-applied afterwards.
+- [ ] Automatic Minecraft modded server setup (CurseForge).
+- [ ] CLI tool for managing game servers.
+- [ ] Web UI for server management.
+- [ ] Command forwarding service (native LinuxGSM commands).
+- [ ] Configurable security contexts per game. (if it turns out some games need it)
+- [ ] Native backup support using CronJobs.
+- [ ] Auto-update scheduling.
 
 ## Contributing
 
-// TODO(user): Add detailed information on how you would like others to contribute to this project
-
-**NOTE:** Run `make help` for more information on all potential `make` targets
-
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
+Contributions are welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup and guidelines.
 
 ## License
 
-Copyright 2025.
-
-Licensed under the MIT License (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    https://opensource.org/licenses/MIT
+Licensed under the MIT License. See [LICENSE](./LICENSE) for details.
