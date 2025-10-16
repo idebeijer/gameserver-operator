@@ -28,6 +28,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"os"
+	goruntime "runtime"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -101,6 +102,7 @@ func main() {
 		"commit", versions.Commit,
 		"date", versions.Date,
 		"builtBy", versions.BuiltBy,
+		"goVersion", goruntime.Version(),
 	)
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
