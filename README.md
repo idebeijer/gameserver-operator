@@ -10,7 +10,7 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/idebeijer/gameserver-operator/test.yml?branch=main&style=for-the-badge)](https://github.com/idebeijer/gameserver-operator/actions)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/idebeijer/gameserver-operator?style=for-the-badge)](https://go.dev/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-1.22+-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
-[![Artifact Hub](https://img.shields.io/endpoint?style=for-the-badge&url=https://artifacthub.io/badge/repository/gameserver-operator)](https://artifacthub.io/packages/search?repo=gameserver-operator)
+[![Artifact Hub](https://img.shields.io/endpoint?style=for-the-badge&url=https://artifacthub.io/badge/repository/gameserver-operator)](https://artifacthub.io/packages/helm/gameserver-operator/gameserver-operator)
 
 </div>
 
