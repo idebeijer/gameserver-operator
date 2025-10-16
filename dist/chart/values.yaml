@@ -3,8 +3,8 @@ controllerManager:
   replicas: 1
   container:
     image:
-      repository: controller
-      tag: latest
+      repository: ghcr.io/idebeijer/gameserver-operator
+      tag: ""
     imagePullPolicy: IfNotPresent
     args:
       - "--leader-elect"

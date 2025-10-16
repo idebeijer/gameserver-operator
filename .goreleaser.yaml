@@ -32,6 +32,7 @@ dockers_v2:
       - "docker.io/idebeijer/gameserver-operator"
     tags:
       - "{{ .Version }}"
+      - "{{ if and (not .Prerelease) (not .IsNightly) (not .IsSnapshot) }}latest{{ end }}"
     labels:
       "org.opencontainers.image.created": "{{ .Date }}"
       "org.opencontainers.image.url": "https://github.com/idebeijer/gameserver-operator"
@@ -50,6 +51,8 @@ snapshot:
   version_template: "{{ incpatch .Version }}"
 
 release:
+  prerelease: auto
+  make_latest: "{{ if not .Prerelease }}true{{ else }}false{{ end }}"
   footer: |
     **Full Changelog**: https://github.com/idebeijer/gameserver-operator/compare/{{ .PreviousTag }}...{{ .Tag }}
 
