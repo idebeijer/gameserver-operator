@@ -52,7 +52,6 @@ snapshot:
 
 release:
   prerelease: auto
-  make_latest: "{{ if not .Prerelease }}true{{ else }}false{{ end }}"
   footer: |
     **Full Changelog**: https://github.com/idebeijer/gameserver-operator/compare/{{ .PreviousTag }}...{{ .Tag }}
 

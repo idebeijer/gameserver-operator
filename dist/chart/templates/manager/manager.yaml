@@ -31,8 +31,6 @@ spec:
             {{- range .Values.controllerManager.container.args }}
             - {{ . }}
             {{- end }}
-          command:
-            - /manager
           image: {{ .Values.controllerManager.container.image.repository }}:{{ .Values.controllerManager.container.image.tag | default .Chart.AppVersion }}
           {{- if .Values.controllerManager.container.imagePullPolicy }}
           imagePullPolicy: {{ .Values.controllerManager.container.imagePullPolicy }}
