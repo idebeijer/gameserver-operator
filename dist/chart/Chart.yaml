@@ -1,7 +1,20 @@
 apiVersion: v2
 name: gameserver-operator
-description: A Helm chart to distribute the project gameserver-operator
+description: A Helm chart for gameserver-operator
+home: https://github.com/idebeijer/gameserver-operator
 type: application
+keywords:
+  - gameserver-operator
+  - linuxgsm
+annotations:
+  artifacthub.io/license: MIT
+sources:
+  - https://github.com/idebeijer/gameserver-operator
+maintainers:
+  - name: idebeijer
+    url: https://github.com/idebeijer
+kubeVersion: ">= 1.22.0-0"
+
+# version and appVersion are set during the release pipeline
 version: 0.1.0
 appVersion: "0.1.0"
-icon: "https://example.com/icon.png"
