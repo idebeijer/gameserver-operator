@@ -9,6 +9,7 @@
   "dependencyDashboard": true,
   "labels": ["dependencies"],
   "postUpdateOptions": ["gomodTidy"],
+  "ignorePaths": ["dist/chart/values.yaml"],
   "customManagers": [
     {
       "customType": "regex",
