@@ -7,6 +7,7 @@
     ":semanticCommits"
   ],
   "dependencyDashboard": true,
+  "labels": ["dependencies"],
   "postUpdateOptions": ["gomodTidy"],
   "customManagers": [
     {
@@ -20,9 +21,6 @@
     }
   ],
   "packageRules": [
-    {
-      "matchDatasources": ["go"]
-    },
     {
       "description": "Group non-major Go deps (exclude k8s & sigs.k8s)",
       "matchManagers": ["gomod"],
@@ -38,9 +36,6 @@
     {
       "matchManagers": ["custom.regex"],
       "groupName": "dev tools"
-    },
-    {
-      "addLabels": ["dependencies"]
     }
   ]
 }
