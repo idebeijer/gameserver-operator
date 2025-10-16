@@ -45,6 +45,7 @@ import (
 
 	gamesv1alpha1 "github.com/idebeijer/gameserver-operator/api/v1alpha1"
 	"github.com/idebeijer/gameserver-operator/internal/controller"
+	versions "github.com/idebeijer/gameserver-operator/pkg/versions"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -94,6 +95,13 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	setupLog.Info("Starting gameserver-operator",
+		"version", versions.Version,
+		"commit", versions.Commit,
+		"date", versions.Date,
+		"builtBy", versions.BuiltBy,
+	)
 
 	// if the enable-http2 flag is false (the default), http/2 should be disabled
 	// due to its vulnerabilities. More specifically, disabling http/2 will
