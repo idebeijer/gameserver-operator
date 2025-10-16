@@ -2,7 +2,7 @@
 
   <h1>GameServer Operator</h1>
 
-**A Kubernetes operator for managing game servers with security and simplicity in mind**
+**A Kubernetes operator for managing game servers via LinuxGSM with security in mind**
 
 [![License](https://img.shields.io/github/license/idebeijer/gameserver-operator?style=for-the-badge)](https://github.com/idebeijer/gameserver-operator/blob/main/LICENSE)
 [![Release](https://img.shields.io/github/v/release/idebeijer/gameserver-operator?style=for-the-badge)](https://github.com/idebeijer/gameserver-operator/releases)
@@ -15,7 +15,9 @@
 
 ## Overview
 
-GameServer Operator provides a single Kubernetes API for deploying and managing more than 270 game servers through [LinuxGSM](https://linuxgsm.com/). A `GameServer` custom resource defines the game, storage, and networking while the operator handles container lifecycle, configuration, and service exposure.
+GameServer Operator is a Kubernetes CRD controller that provides a declarative way to deploy and manage game servers via [LinuxGSM](https://linuxgsm.com/). With a `GameServer` custom resource, you define the game, storage layout, and networking, while the operator takes care of orchestration.
+
+Couldn't this be done with a Helm chart? Maybe, but the operator pattern provides more flexibility and extensibility. And since it's built with future features in mind (like automated mod installs, backups, updates, CLI/web UI, etc.), an operator seems like a better fit.
 
 ## Features
 
@@ -27,6 +29,7 @@ GameServer Operator provides a single Kubernetes API for deploying and managing 
 - Kubernetes 1.22+ (operator uses [Server-Side Apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/)).
 - Helm 3.8+.
 - `kubectl` configured for the target cluster.
+- Some games require SteamCMD. Check the LinuxGSM SteamCMD guide at https://docs.linuxgsm.com/steamcmd.
 
 ## Installation
 
@@ -112,6 +115,10 @@ Otherwise, in the future the `GameServer` spec may include options for customizi
 - [ ] Configurable security contexts per game. (if it turns out some games need it)
 - [ ] Native backup support using CronJobs.
 - [ ] Auto-update scheduling.
+
+## Special Thanks
+
+Special thanks to the [LinuxGSM](https://linuxgsm.com/) maintainers for the tooling and huge catalog of supported games that power this operator.
 
 ## Contributing
 
