@@ -1,0 +1,46 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "docker:pinDigests",
+    "helpers:pinGitHubActionDigests",
+    ":semanticCommits"
+  ],
+  "dependencyDashboard": true,
+  "postUpdateOptions": ["gomodTidy"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update *_VERSION variables in Makefile",
+      "managerFilePatterns": ["/(^|/)Makefile$/"],
+      "matchStrings": [
+        "#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)[^\\n]*\\n\\s*[A-Z_]+_VERSION\\s*\\?=\\s*(?<currentValue>\\S+)"
+      ],
+      "versioningTemplate": "semver-coerced"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchDatasources": ["go"]
+    },
+    {
+      "description": "Group non-major Go deps (exclude k8s & sigs.k8s)",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "excludePackagePatterns": ["/^k8s\\.io\\//", "/^sigs\\.k8s\\.io\\//"],
+      "groupName": "go (non-major)"
+    },
+    {
+      "groupName": "kubernetes dependencies",
+      "matchDatasources": ["go"],
+      "matchPackageNames": ["/^k8s\\.io\\//", "/^sigs\\.k8s\\.io\\//"]
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "groupName": "dev tools"
+    },
+    {
+      "addLabels": ["dependencies"]
+    }
+  ]
+}
