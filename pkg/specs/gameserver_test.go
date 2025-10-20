@@ -38,6 +38,12 @@ var _ = Describe("LinuxGSM spec builders", func() {
 			podSpec := statefulSet.Spec.Template.Spec
 			Expect(podSpec.SecurityContext).NotTo(BeNil())
 			Expect(podSpec.Containers).To(HaveLen(1))
+			Expect(podSpec.Containers[0].SecurityContext).NotTo(BeNil())
+			Expect(podSpec.SecurityContext.RunAsNonRoot).To(HaveValue(BeTrue()))
+			Expect(podSpec.SecurityContext.RunAsUser).To(HaveValue(Equal(int64(1000))))
+			Expect(podSpec.SecurityContext.RunAsGroup).To(HaveValue(Equal(int64(1000))))
+			Expect(podSpec.SecurityContext.FSGroup).To(HaveValue(Equal(int64(1000))))
+			Expect(podSpec.AutomountServiceAccountToken).To(HaveValue(BeFalse()))
 
 			container := podSpec.Containers[0]
 			Expect(container.Name).NotTo(BeNil())
