@@ -18,10 +18,10 @@ builds:
     ldflags:
       - "-s"
       - "-w"
-      - "-X github.com/idebeijer/gameserver-operator/pkg/version.Version={{ .Version }}"
-      - "-X github.com/idebeijer/gameserver-operator/pkg/version.Commit={{ .ShortCommit }}"
-      - "-X github.com/idebeijer/gameserver-operator/pkg/version.Date={{ .Date }}"
-      - "-X github.com/idebeijer/gameserver-operator/pkg/version.BuiltBy=goreleaser"
+      - "-X github.com/idebeijer/gameserver-operator/pkg/versions.Version={{ .Version }}"
+      - "-X github.com/idebeijer/gameserver-operator/pkg/versions.Commit={{ .ShortCommit }}"
+      - "-X github.com/idebeijer/gameserver-operator/pkg/versions.Date={{ .Date }}"
+      - "-X github.com/idebeijer/gameserver-operator/pkg/versions.BuiltBy=goreleaser"
 
 dockers_v2:
   - dockerfile: Dockerfile.goreleaser
