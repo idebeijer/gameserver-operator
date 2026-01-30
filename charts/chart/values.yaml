@@ -13,7 +13,7 @@ manager:
   
   image:
     repository: ghcr.io/idebeijer/gameserver-operator
-    tag: latest
+    tag: latest@sha256:65a622f74986a3ea857907445e67f66764bc730f506bc453cf4a2b738ce4a3b1
     pullPolicy: IfNotPresent
 
   ## Arguments
