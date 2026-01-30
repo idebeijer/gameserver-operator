@@ -32,10 +32,7 @@ go.work
 *.swo
 *~
 
-<<<<<<< HEAD
 # Kubeconfig might contain secrets
 *.kubeconfig
-=======
 # Exclude Mac OS X system files
 .DS_Store
->>>>>>> tmp-original-30-01-26-01-25
