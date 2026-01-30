@@ -2,12 +2,10 @@
 # This file is used to track the info used to scaffold your project
 # and allow the plugins properly work.
 # More info: https://book.kubebuilder.io/reference/project-config.html
-cliVersion: 4.9.0
+cliVersion: 4.11.1
 domain: idebeijer.github.io
 layout:
 - go.kubebuilder.io/v4
-plugins:
-  helm.kubebuilder.io/v1-alpha: {}
 projectName: gameserver-operator
 repo: github.com/idebeijer/gameserver-operator
 resources:

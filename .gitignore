@@ -32,5 +32,7 @@ go.work
 *.swo
 *~
 
+# Kubeconfig might contain secrets
+*.kubeconfig
 # Exclude Mac OS X system files
 .DS_Store
