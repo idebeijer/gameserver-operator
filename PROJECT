@@ -6,6 +6,10 @@ cliVersion: 4.11.1
 domain: idebeijer.github.io
 layout:
 - go.kubebuilder.io/v4
+plugins:
+  helm.kubebuilder.io/v2-alpha:
+    manifests: dist/install.yaml
+    output: charts
 projectName: gameserver-operator
 repo: github.com/idebeijer/gameserver-operator
 resources:
