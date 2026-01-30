@@ -4,6 +4,13 @@
 
 **A Kubernetes operator for managing game servers via LinuxGSM with security in mind**
 
+<<<<<<< HEAD
+### Prerequisites
+- go version v1.24.6+
+- docker version 17.03+.
+- kubectl version v1.11.3+.
+- Access to a Kubernetes v1.11.3+ cluster.
+=======
 [![License](https://img.shields.io/github/license/idebeijer/gameserver-operator?style=for-the-badge)](https://github.com/idebeijer/gameserver-operator/blob/main/LICENSE)
 [![Release](https://img.shields.io/github/v/release/idebeijer/gameserver-operator?style=for-the-badge)](https://github.com/idebeijer/gameserver-operator/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/idebeijer/gameserver-operator?style=for-the-badge)](https://goreportcard.com/report/github.com/idebeijer/gameserver-operator)
@@ -11,6 +18,7 @@
 [![Go Version](https://img.shields.io/github/go-mod/go-version/idebeijer/gameserver-operator?style=for-the-badge)](https://go.dev/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-1.22+-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![Artifact Hub](https://img.shields.io/endpoint?style=for-the-badge&url=https://artifacthub.io/badge/repository/gameserver-operator)](https://artifacthub.io/packages/helm/gameserver-operator/gameserver-operator)
+>>>>>>> tmp-original-30-01-26-01-25
 
 </div>
 
@@ -119,7 +127,45 @@ Otherwise, in the future the `GameServer` spec may include options for customizi
 
 ## Special Thanks
 
+<<<<<<< HEAD
+```sh
+make build-installer IMG=<some-registry>/gameserver-operator:tag
+```
+
+**NOTE:** The makefile target mentioned above generates an 'install.yaml'
+file in the dist directory. This file contains all the resources built
+with Kustomize, which are necessary to install this project without its
+dependencies.
+
+2. Using the installer
+
+Users can just run 'kubectl apply -f <URL for YAML BUNDLE>' to install
+the project, i.e.:
+
+```sh
+kubectl apply -f https://raw.githubusercontent.com/<org>/gameserver-operator/<tag or branch>/dist/install.yaml
+```
+
+### By providing a Helm Chart
+
+1. Build the chart using the optional helm plugin
+
+```sh
+kubebuilder edit --plugins=helm/v2-alpha
+```
+
+2. See that a chart was generated under 'dist/chart', and users
+can obtain this solution from there.
+
+**NOTE:** If you change the project, you need to update the Helm Chart
+using the same command above to sync the latest changes. Furthermore,
+if you create webhooks, you need to use the above command with
+the '--force' flag and manually ensure that any custom configuration
+previously added to 'dist/chart/values.yaml' or 'dist/chart/manager/manager.yaml'
+is manually re-applied afterwards.
+=======
 Special thanks to the [LinuxGSM](https://linuxgsm.com/) maintainers for the tooling and huge catalog of supported games that power this operator.
+>>>>>>> tmp-original-30-01-26-01-25
 
 ## Contributing
 
