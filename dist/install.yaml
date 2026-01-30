@@ -1,15 +1,17 @@
-{{- if .Values.crd.enable }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: gameserver-operator
+    control-plane: controller-manager
+  name: gameserver-operator-system
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  labels:
-    {{- include "chart.labels" . | nindent 4 }}
   annotations:
-    {{- if .Values.crd.keep }}
-    "helm.sh/resource-policy": keep
-    {{- end }}
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.20.0
   name: gameservers.games.idebeijer.github.io
 spec:
   group: games.idebeijer.github.io
@@ -320,4 +322,340 @@ spec:
     storage: true
     subresources:
       status: {}
-{{- end -}}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: gameserver-operator
+  name: gameserver-operator-controller-manager
+  namespace: gameserver-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: gameserver-operator
+  name: gameserver-operator-leader-election-role
+  namespace: gameserver-operator-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: gameserver-operator
+  name: gameserver-operator-gameserver-admin-role
+rules:
+- apiGroups:
+  - games.idebeijer.github.io
+  resources:
+  - gameservers
+  verbs:
+  - '*'
+- apiGroups:
+  - games.idebeijer.github.io
+  resources:
+  - gameservers/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: gameserver-operator
+  name: gameserver-operator-gameserver-editor-role
+rules:
+- apiGroups:
+  - games.idebeijer.github.io
+  resources:
+  - gameservers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - games.idebeijer.github.io
+  resources:
+  - gameservers/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: gameserver-operator
+  name: gameserver-operator-gameserver-viewer-role
+rules:
+- apiGroups:
+  - games.idebeijer.github.io
+  resources:
+  - gameservers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - games.idebeijer.github.io
+  resources:
+  - gameservers/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gameserver-operator-manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - games.idebeijer.github.io
+  resources:
+  - gameservers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - games.idebeijer.github.io
+  resources:
+  - gameservers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - games.idebeijer.github.io
+  resources:
+  - gameservers/status
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gameserver-operator-metrics-auth-role
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gameserver-operator-metrics-reader
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: gameserver-operator
+  name: gameserver-operator-leader-election-rolebinding
+  namespace: gameserver-operator-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: gameserver-operator-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: gameserver-operator-controller-manager
+  namespace: gameserver-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: gameserver-operator
+  name: gameserver-operator-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gameserver-operator-manager-role
+subjects:
+- kind: ServiceAccount
+  name: gameserver-operator-controller-manager
+  namespace: gameserver-operator-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gameserver-operator-metrics-auth-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gameserver-operator-metrics-auth-role
+subjects:
+- kind: ServiceAccount
+  name: gameserver-operator-controller-manager
+  namespace: gameserver-operator-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: gameserver-operator
+    control-plane: controller-manager
+  name: gameserver-operator-controller-manager-metrics-service
+  namespace: gameserver-operator-system
+spec:
+  ports:
+  - name: https
+    port: 8443
+    protocol: TCP
+    targetPort: 8443
+  selector:
+    app.kubernetes.io/name: gameserver-operator
+    control-plane: controller-manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/name: gameserver-operator
+    control-plane: controller-manager
+  name: gameserver-operator-controller-manager
+  namespace: gameserver-operator-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gameserver-operator
+      control-plane: controller-manager
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+      labels:
+        app.kubernetes.io/name: gameserver-operator
+        control-plane: controller-manager
+    spec:
+      containers:
+      - args:
+        - --metrics-bind-address=:8443
+        - --leader-elect
+        - --health-probe-bind-address=:8081
+        command:
+        - /manager
+        image: controller:latest
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        ports: []
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts: []
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: gameserver-operator-controller-manager
+      terminationGracePeriodSeconds: 10
+      volumes: []
