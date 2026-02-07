@@ -200,5 +200,13 @@ func BuildGameServerService(gs *gamesv1alpha1.GameServer) *corev1ac.ServiceApply
 			WithPorts(servicePorts...),
 		)
 
+	if gs.Spec.Service.ExternalTrafficPolicy != nil {
+		svc.Spec.WithExternalTrafficPolicy(*gs.Spec.Service.ExternalTrafficPolicy)
+	}
+
+	if gs.Spec.Service.InternalTrafficPolicy != nil {
+		svc.Spec.WithInternalTrafficPolicy(*gs.Spec.Service.InternalTrafficPolicy)
+	}
+
 	return svc
 }

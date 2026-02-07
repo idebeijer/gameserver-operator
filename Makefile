@@ -49,6 +49,10 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	"$(CONTROLLER_GEN)" object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
+.PHONY: helm-chart
+helm-chart: ## Regenerate Helm charts using kubebuilder.
+	kubebuilder edit --plugins=helm/v2-alpha --output-dir=charts
+
 .PHONY: fmt
 fmt: ## Run go fmt against code.
 	go fmt ./...

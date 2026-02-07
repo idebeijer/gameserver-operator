@@ -196,6 +196,53 @@ var _ = Describe("LinuxGSM spec builders", func() {
 			Expect(metrics.TargetPort).NotTo(BeNil())
 			Expect(metrics.TargetPort.StrVal).To(Equal("udp-metrics"))
 		})
+
+		Describe("Traffic Policy Configuration", func() {
+			It("omits traffic policies when not set in GameServer spec", func() {
+				gs := newGameServer(func(gs *gamesv1alpha1.GameServer) {
+					gs.Spec.Service = &gamesv1alpha1.ServiceSpec{
+						Type: corev1.ServiceTypeLoadBalancer,
+						Ports: []gamesv1alpha1.ServicePort{
+							{
+								Name:     "game",
+								Protocol: corev1.ProtocolTCP,
+								Port:     25565,
+							},
+						},
+						// ExternalTrafficPolicy and InternalTrafficPolicy not set (nil)
+					}
+				})
+
+				service := specs.BuildGameServerService(gs)
+				Expect(service).NotTo(BeNil())
+				Expect(service.Spec.ExternalTrafficPolicy).To(BeNil())
+				Expect(service.Spec.InternalTrafficPolicy).To(BeNil())
+			})
+
+			It("sets both traffic policies when specified", func() {
+				gs := newGameServer(func(gs *gamesv1alpha1.GameServer) {
+					gs.Spec.Service = &gamesv1alpha1.ServiceSpec{
+						Type:                  corev1.ServiceTypeLoadBalancer,
+						ExternalTrafficPolicy: ptr.To(corev1.ServiceExternalTrafficPolicyLocal),
+						InternalTrafficPolicy: ptr.To(corev1.ServiceInternalTrafficPolicyCluster),
+						Ports: []gamesv1alpha1.ServicePort{
+							{
+								Name:     "game",
+								Protocol: corev1.ProtocolTCP,
+								Port:     25565,
+							},
+						},
+					}
+				})
+
+				service := specs.BuildGameServerService(gs)
+				Expect(service).NotTo(BeNil())
+				Expect(service.Spec.ExternalTrafficPolicy).NotTo(BeNil())
+				Expect(*service.Spec.ExternalTrafficPolicy).To(Equal(corev1.ServiceExternalTrafficPolicyLocal))
+				Expect(service.Spec.InternalTrafficPolicy).NotTo(BeNil())
+				Expect(*service.Spec.InternalTrafficPolicy).To(Equal(corev1.ServiceInternalTrafficPolicyCluster))
+			})
+		})
 	})
 })
 

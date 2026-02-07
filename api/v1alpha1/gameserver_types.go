@@ -135,6 +135,16 @@ type ServiceSpec struct {
 	// Annotations is a map of annotations to add to the service.
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
+
+	// ExternalTrafficPolicy specifies the policy for external traffic to the service.
+	// +kubebuilder:validation:Enum=Cluster;Local
+	// +optional
+	ExternalTrafficPolicy *corev1.ServiceExternalTrafficPolicy `json:"externalTrafficPolicy,omitzero"`
+
+	// InternalTrafficPolicy specifies the policy for internal traffic to the service.
+	// +kubebuilder:validation:Enum=Cluster;Local
+	// +optional
+	InternalTrafficPolicy *corev1.ServiceInternalTrafficPolicy `json:"internalTrafficPolicy,omitzero"`
 }
 
 // ServicePort defines a port to be exposed on the game server service.
