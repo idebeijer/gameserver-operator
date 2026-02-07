@@ -29,6 +29,10 @@ go.work
 *.swo
 *~
 
+# dist
+/dist
+!dist/install.yaml
+
 # Kubeconfig might contain secrets
 *.kubeconfig
 # Exclude Mac OS X system files
