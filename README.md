@@ -39,7 +39,7 @@ Couldn't this be done with a Helm chart? Maybe, but the operator pattern provide
 ```bash
 helm install gameserver-operator \
   oci://ghcr.io/idebeijer/charts/gameserver-operator \
-  --namespace gameserver-operator-system \
+  --namespace gameserver-system \
   --create-namespace
 ```
 
