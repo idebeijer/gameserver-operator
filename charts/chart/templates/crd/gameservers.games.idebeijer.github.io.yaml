@@ -152,6 +152,18 @@ spec:
                                             type: string
                                         description: Annotations is a map of annotations to add to the service.
                                         type: object
+                                    externalTrafficPolicy:
+                                        description: ExternalTrafficPolicy specifies the policy for external traffic to the service.
+                                        enum:
+                                            - Cluster
+                                            - Local
+                                        type: string
+                                    internalTrafficPolicy:
+                                        description: InternalTrafficPolicy specifies the policy for internal traffic to the service.
+                                        enum:
+                                            - Cluster
+                                            - Local
+                                        type: string
                                     ports:
                                         description: |-
                                             Ports is a list of ports to expose on the service.
