@@ -1,8 +1,8 @@
 FROM gcr.io/distroless/static:nonroot@sha256:f9f84bd968430d7d35e8e6d55c40efb0b980829ec42920a49e60e65eac0d83fc AS runtime
 ARG TARGETPLATFORM
 
-COPY --chown=65532:65532 ${TARGETPLATFORM}/manager /usr/local/bin/manager
-WORKDIR /home/nonroot
+WORKDIR /
+COPY --chown=65532:65532 ${TARGETPLATFORM}/manager .
 USER 65532:65532
 
-ENTRYPOINT ["/usr/local/bin/manager"]
+ENTRYPOINT ["/manager"]

@@ -89,16 +89,6 @@ make undeploy       # Remove the manager and associated resources
 
 More details in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
-### Kubebuilder Operations
-
-```bash
-# Regenerate Helm chart
-kubebuilder edit --plugins=helm/v2-alpha --output-dir=charts
-
-# Update scaffold (then manually fix merge markers)
-kubebuilder alpha update --force
-```
-
 ## Documentation
 
 Additional examples and configuration snippets live in the [`config/samples`](./config/samples) directory. The [`pkg/specs`](./pkg/specs) package contains the programmatic representation of supported options.

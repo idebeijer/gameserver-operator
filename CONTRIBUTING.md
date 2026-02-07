@@ -129,26 +129,25 @@ kubectl apply -f dist/install.yaml
 The project uses Kubebuilder's Helm plugin to generate Helm charts:
 
 ```bash
-kubebuilder edit --plugins=helm/v1-alpha
+kubebuilder edit --plugins=helm/v2-alpha --output-dir=charts
 ```
 
-The generated chart is located in `dist/chart/`.
+The generated chart is located in `charts/chart/`.
 
 **Note:** After making changes to the project:
 
 - Ensure to run `make manifests` to update CRDs.
-- Regenerate the Helm chart (using `kubebuilder edit --plugins=helm/v1-alpha` again if necessary).
+- Regenerate the Helm chart (using `kubebuilder edit --plugins=helm/v2-alpha --output-dir=charts` again if necessary).
 
 The following files will not be updates unless `--force` is used:
 
-- `dist/chart/values.yaml`
-- `dist/chart/templates/manager/manager.yaml`
+- `charts/chart/templates/_helpers.tpl`
+- `charts/chart/.helmignore`
+- `.github/workflows/test-chart.yml`
 
 The following files are never updated automatically and must be maintained manually:
 
-- `dist/chart/Chart.yaml`
-- `dist/chart/templates/_helpers.tpl`
-- `dist/chart/.helmignore`
+- `charts/chart/Chart.yaml`
 
 ## Code Style
 
