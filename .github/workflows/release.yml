@@ -69,7 +69,7 @@ jobs:
           CLEAN_TAG=${TAG#v}
           echo "Packaging chart with version/appVersion=${CLEAN_TAG}"
           mkdir -p dist
-          helm package ./dist/chart --destination ./dist/chartrelease --version "${CLEAN_TAG}" --app-version "${CLEAN_TAG}"
+          helm package ./charts/chart --destination ./charts/chartrelease --version "${CLEAN_TAG}" --app-version "${CLEAN_TAG}"
 
       - name: Login to GHCR (GitHub Container Registry)
         run: |
@@ -77,6 +77,6 @@ jobs:
 
       - name: Push chart to GHCR (OCI)
         run: |
-          CHART_TGZ=$(ls ./dist/chartrelease/*.tgz | head -n1)
+          CHART_TGZ=$(ls ./charts/chartrelease/*.tgz | head -n1)
           echo "pushing $CHART_TGZ to ghcr.io/${{ github.repository_owner }}/charts"
           helm push "$CHART_TGZ" oci://ghcr.io/${{ github.repository_owner }}/charts

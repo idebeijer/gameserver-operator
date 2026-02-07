@@ -3,6 +3,7 @@
 ## Project Structure
 
 **Single-group layout (default):**
+
 ```
 cmd/main.go                    Manager entry (registers controllers/webhooks)
 api/<version>/*_types.go       CRD schemas (+kubebuilder markers)
@@ -17,6 +18,7 @@ PROJECT                        Kubebuilder metadata Auto-generated (DO NOT EDIT)
 ```
 
 **Multi-group layout** (for projects with multiple API groups):
+
 ```
 api/<group>/<version>/*_types.go       CRD schemas by group
 internal/controller/<group>/*          Controllers by group
@@ -26,6 +28,7 @@ internal/webhook/<group>/<version>/*   Webhooks by group and version (if present
 Multi-group layout organizes APIs by group name (e.g., `batch`, `apps`). Check the `PROJECT` file for `multigroup: true`.
 
 **To convert to multi-group layout:**
+
 1. Run: `kubebuilder edit --multigroup=true`
 2. Move APIs: `mkdir -p api/<group> && mv api/<version> api/<group>/`
 3. Move controllers: `mkdir -p internal/controller/<group> && mv internal/controller/*.go internal/controller/<group>/`
@@ -37,6 +40,7 @@ Multi-group layout organizes APIs by group name (e.g., `batch`, `apps`). Check t
 ## Critical Rules
 
 ### Never Edit These (Auto-Generated)
+
 - `config/crd/bases/*.yaml` - from `make manifests`
 - `config/rbac/role.yaml` - from `make manifests`
 - `config/webhook/manifests.yaml` - from `make manifests`
@@ -44,27 +48,33 @@ Multi-group layout organizes APIs by group name (e.g., `batch`, `apps`). Check t
 - `PROJECT` - from `kubebuilder [OPTIONS]`
 
 ### Never Remove Scaffold Markers
+
 Do NOT delete `// +kubebuilder:scaffold:*` comments. CLI injects code at these markers.
 
 ### Keep Project Structure
+
 Do not move files around. The CLI expects files in specific locations.
 
 ### Always Use CLI Commands
+
 Always use `kubebuilder create api` and `kubebuilder create webhook` to scaffold. Do NOT create files manually.
 
 ### E2E Tests Require an Isolated Kind Cluster
+
 The e2e tests are designed to validate the solution in an isolated environment (similar to GitHub Actions CI).
 Ensure you run them against a dedicated [Kind](https://kind.sigs.k8s.io/) cluster (not your “real” dev/prod cluster).
 
 ## After Making Changes
 
 **After editing `*_types.go` or markers:**
+
 ```
 make manifests  # Regenerate CRDs/RBAC from markers
 make generate   # Regenerate DeepCopy methods
 ```
 
 **After editing `*.go` files:**
+
 ```
 make lint-fix   # Auto-fix code style
 make test       # Run unit tests
@@ -73,6 +83,7 @@ make test       # Run unit tests
 ## CLI Commands Cheat Sheet
 
 ### Create API (your own types)
+
 ```bash
 kubebuilder create api --group <group> --version <version> --kind <Kind>
 ```
@@ -90,8 +101,8 @@ kubebuilder create api --group example.com --version v1alpha1 --kind Memcached \
 
 Scaffolds good-practice code: reconciliation logic, status conditions, finalizers, RBAC. Use as a reference implementation.
 
-
 ### Create Webhooks
+
 ```bash
 # Validation + defaulting
 kubebuilder create webhook --group <group> --version <version> --kind <Kind> \
@@ -103,6 +114,7 @@ kubebuilder create webhook --group <group> --version v1 --kind <Kind> \
 ```
 
 ### Controller for Core Kubernetes Types
+
 ```bash
 # Watch Pods
 kubebuilder create api --group core --version v1 --kind Pod \
@@ -203,6 +215,7 @@ kubectl logs -n <project>-system deployment/<project>-controller-manager -c mana
 ```
 
 **Implementation rules:**
+
 - **Idempotent reconciliation**: Safe to run multiple times
 - **Re-fetch before updates**: `r.Get(ctx, req.NamespacedName, obj)` before `r.Update` to avoid conflicts
 - **Structured logging**: `log := log.FromContext(ctx); log.Info("msg", "key", val)`
@@ -211,6 +224,7 @@ kubectl logs -n <project>-system deployment/<project>-controller-manager -c mana
 - **Finalizers**: Clean up external resources (buckets, VMs, DNS entries)
 
 ### Webhooks
+
 - **Create all types together**: `--defaulting --programmatic-validation --conversion`
 - **When`--force`is used**: Backup custom logic first, then restore after scaffolding
 - **For multi-version APIs**: Use hub-and-spoke pattern (`--conversion --spoke v2`)
@@ -239,11 +253,13 @@ make build-installer IMG=<registry>/<project>:tag
 ```
 
 **Key points:**
+
 - The `dist/install.yaml` is generated from Kustomize manifests (CRDs, RBAC, Deployment)
 - Commit this file to your repository for easy distribution
 - Users only need `kubectl` to install (no additional tools required)
 
 **Example:** Users install with a single command:
+
 ```bash
 kubectl apply -f https://raw.githubusercontent.com/<org>/<repo>/<tag>/dist/install.yaml
 ```
@@ -251,12 +267,13 @@ kubectl apply -f https://raw.githubusercontent.com/<org>/<repo>/<tag>/dist/insta
 ### Option 2: Helm Chart
 
 ```bash
-kubebuilder edit --plugins=helm/v2-alpha  # One-time, generates dist/chart/
-# Users install: helm install my-release ./dist/chart/ --namespace <ns> --create-namespace
+kubebuilder edit --plugins=helm/v2-alpha  # One-time, generates charts/chart/
+# Users install: helm install my-release ./charts/chart/ --namespace <ns> --create-namespace
 ```
 
 **Important:** If you add webhooks or modify manifests after initial chart generation:
-1. Backup any customizations in `dist/chart/values.yaml` and `dist/chart/manager/manager.yaml`
+
+1. Backup any customizations in `charts/chart/values.yaml` and `charts/chart/manager/manager.yaml`
 2. Re-run: `kubebuilder edit --plugins=helm/v2-alpha --force`
 3. Manually restore your custom values from the backup
 
@@ -270,16 +287,19 @@ make docker-build docker-push IMG=$IMG
 ## References
 
 ### Essential Reading
+
 - **Kubebuilder Book**: https://book.kubebuilder.io (comprehensive guide)
 - **controller-runtime FAQ**: https://github.com/kubernetes-sigs/controller-runtime/blob/main/FAQ.md (common patterns and questions)
 - **Good Practices**: https://book.kubebuilder.io/reference/good-practices.html (why reconciliation is idempotent, status conditions, etc.)
 
 ### API Design & Implementation
+
 - **API Conventions**: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md
 - **Operator Pattern**: https://kubernetes.io/docs/concepts/extend-kubernetes/operator/
 - **Markers Reference**: https://book.kubebuilder.io/reference/markers.html
 
 ### Tools & Libraries
+
 - **controller-runtime**: https://github.com/kubernetes-sigs/controller-runtime
 - **controller-tools**: https://github.com/kubernetes-sigs/controller-tools
 - **Kubebuilder Repo**: https://github.com/kubernetes-sigs/kubebuilder
