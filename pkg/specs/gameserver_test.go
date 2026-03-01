@@ -84,7 +84,7 @@ var _ = Describe("LinuxGSM spec builders", func() {
 		It("omits persistent storage when storage is disabled", func() {
 			gs := newGameServer(func(gs *gamesv1alpha1.GameServer) {
 				gs.Spec.Storage = &gamesv1alpha1.StorageSpec{
-					Enabled: ptr.To(false),
+					Enabled: new(false),
 				}
 			})
 
