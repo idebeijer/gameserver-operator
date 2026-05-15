@@ -1,11 +1,11 @@
-{{- if .Values.metrics.enable }}
+{{- if and .Values.metrics.enable .Values.metrics.secure }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-    name: {{ include "gameserver-operator.resourceName" (dict "suffix" "metrics-reader" "context" $) }}
+  name: {{ include "gameserver-operator.resourceName" (dict "suffix" "metrics-reader" "context" $) }}
 rules:
-    - nonResourceURLs:
-        - /metrics
-      verbs:
-        - get
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
 {{- end }}
