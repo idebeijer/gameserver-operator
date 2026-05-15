@@ -41,6 +41,8 @@ import (
 	"github.com/idebeijer/gameserver-operator/pkg/specs"
 )
 
+const testNamespace = "default"
+
 var _ = Describe("GameServer Controller", func() {
 	Context("When reconciling a resource", func() {
 		const resourceName = "test-resource"
@@ -49,7 +51,7 @@ var _ = Describe("GameServer Controller", func() {
 
 		typeNamespacedName := types.NamespacedName{
 			Name:      resourceName,
-			Namespace: "default",
+			Namespace: testNamespace,
 		}
 		gameserver := &gamesv1alpha1.GameServer{}
 
@@ -64,7 +66,7 @@ var _ = Describe("GameServer Controller", func() {
 					},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
-						Namespace: "default",
+						Namespace: testNamespace,
 					},
 					Spec: gamesv1alpha1.GameServerSpec{
 						GameName: "rust",
@@ -133,7 +135,7 @@ func newGameServer(overrides ...func(*gamesv1alpha1.GameServer)) *gamesv1alpha1.
 	gs := &gamesv1alpha1.GameServer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "example",
-			Namespace: "default",
+			Namespace: testNamespace,
 		},
 		Spec: gamesv1alpha1.GameServerSpec{
 			GameName: "valheim",
