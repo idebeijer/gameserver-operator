@@ -93,7 +93,11 @@ func buildLinuxGSMContainer(gs *gamesv1alpha1.GameServer, storageEnabled bool) *
 	return container
 }
 
-func buildLinuxGSMPodSpec(gs *gamesv1alpha1.GameServer, container *corev1ac.ContainerApplyConfiguration, storageEnabled bool) *corev1ac.PodSpecApplyConfiguration {
+func buildLinuxGSMPodSpec(
+	gs *gamesv1alpha1.GameServer,
+	container *corev1ac.ContainerApplyConfiguration,
+	storageEnabled bool,
+) *corev1ac.PodSpecApplyConfiguration {
 	podSpec := corev1ac.PodSpec().
 		WithAutomountServiceAccountToken(false).
 		WithSecurityContext(corev1ac.PodSecurityContext().
