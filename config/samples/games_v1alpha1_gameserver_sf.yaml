@@ -1,0 +1,22 @@
+apiVersion: games.idebeijer.github.io/v1alpha1
+kind: GameServer
+metadata:
+  name: sf
+spec:
+  gameName: sf
+  editor:
+    enabled: true
+    shareProcessNamespace: true
+  service:
+    type: LoadBalancer
+    ports:
+      - name: game-tcp
+        port: 7777
+        protocol: TCP
+      - name: game-udp
+        port: 7777
+        protocol: UDP
+      - name: api-tcp
+        protocol: TCP
+        port: 8888
+        targetPort: 8888

@@ -17,7 +17,7 @@ import (
 func BuildLinuxGSMGameServerStatefulSet(gs *gamesv1alpha1.GameServer) *appsv1ac.StatefulSetApplyConfiguration {
 	storageEnabled := linuxGSMStorageEnabled(gs)
 	container := buildLinuxGSMContainer(gs, storageEnabled)
-	podSpec := buildLinuxGSMPodSpec(container)
+	podSpec := buildLinuxGSMPodSpec(gs, container, storageEnabled)
 	stsSpec := buildLinuxGSMStatefulSetSpec(gs, podSpec, storageEnabled)
 
 	sts := appsv1ac.StatefulSet(gs.Name, gs.Namespace).
@@ -93,8 +93,8 @@ func buildLinuxGSMContainer(gs *gamesv1alpha1.GameServer, storageEnabled bool) *
 	return container
 }
 
-func buildLinuxGSMPodSpec(container *corev1ac.ContainerApplyConfiguration) *corev1ac.PodSpecApplyConfiguration {
-	return corev1ac.PodSpec().
+func buildLinuxGSMPodSpec(gs *gamesv1alpha1.GameServer, container *corev1ac.ContainerApplyConfiguration, storageEnabled bool) *corev1ac.PodSpecApplyConfiguration {
+	podSpec := corev1ac.PodSpec().
 		WithAutomountServiceAccountToken(false).
 		WithSecurityContext(corev1ac.PodSecurityContext().
 			WithRunAsNonRoot(true).
@@ -107,6 +107,74 @@ func buildLinuxGSMPodSpec(container *corev1ac.ContainerApplyConfiguration) *core
 			),
 		).
 		WithContainers(container)
+
+	if gs.Spec.Editor != nil && gs.Spec.Editor.Enabled {
+		podSpec.WithContainers(buildCodeServerSidecar(gs, storageEnabled))
+		if gs.Spec.Editor.ShareProcessNamespace {
+			podSpec.WithShareProcessNamespace(true)
+		}
+	}
+
+	return podSpec
+}
+
+func buildCodeServerSidecar(gs *gamesv1alpha1.GameServer, storageEnabled bool) *corev1ac.ContainerApplyConfiguration {
+	args := []string{"--bind-addr", "0.0.0.0:8080", "--disable-telemetry"}
+
+	var envVars []*corev1ac.EnvVarApplyConfiguration
+	if gs.Spec.Editor.Password != "" {
+		args = append(args, "--auth", "password")
+		envVars = append(envVars, corev1ac.EnvVar().WithName("PASSWORD").WithValue(gs.Spec.Editor.Password))
+	} else {
+		args = append(args, "--auth", "none")
+	}
+
+	if storageEnabled {
+		args = append(args, "/data")
+	}
+
+	sidecar := corev1ac.Container().
+		WithName("editor").
+		WithImage("codercom/code-server:latest").
+		WithImagePullPolicy(v1.PullIfNotPresent).
+		WithArgs(args...).
+		WithPorts(
+			corev1ac.ContainerPort().
+				WithName("editor").
+				WithContainerPort(8080).
+				WithProtocol(v1.ProtocolTCP),
+		).
+		WithSecurityContext(corev1ac.SecurityContext().
+			WithAllowPrivilegeEscalation(false).
+			WithCapabilities(corev1ac.Capabilities().
+				WithDrop("ALL"),
+			),
+		)
+
+	if len(envVars) > 0 {
+		sidecar.WithEnv(envVars...)
+	}
+
+	if storageEnabled {
+		sidecar.WithVolumeMounts(
+			corev1ac.VolumeMount().
+				WithName("data").
+				WithMountPath("/data"),
+		)
+	}
+
+	if gs.Spec.Editor.Resources != nil {
+		resources := corev1ac.ResourceRequirements()
+		if gs.Spec.Editor.Resources.Limits != nil {
+			resources.WithLimits(gs.Spec.Editor.Resources.Limits)
+		}
+		if gs.Spec.Editor.Resources.Requests != nil {
+			resources.WithRequests(gs.Spec.Editor.Resources.Requests)
+		}
+		sidecar.WithResources(resources)
+	}
+
+	return sidecar
 }
 
 func buildLinuxGSMStatefulSetSpec(gs *gamesv1alpha1.GameServer,

@@ -31,6 +31,30 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+// EditorSpec defines the configuration for the web-based editor sidecar.
+type EditorSpec struct {
+	// Enabled indicates whether the code-server (VS Code in browser) sidecar is added to the pod.
+	// Access it via: kubectl port-forward pod/<name> 8080:8080
+	// +kubebuilder:default=false
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
+
+	// Password sets the access password for the code-server instance.
+	// If not specified, authentication is disabled (access is secured by kubectl port-forward).
+	// +optional
+	Password string `json:"password,omitempty"`
+
+	// ShareProcessNamespace enables sharing the process namespace between the gameserver
+	// and editor containers, allowing the editor terminal to inspect and signal gameserver processes.
+	// +kubebuilder:default=false
+	// +optional
+	ShareProcessNamespace bool `json:"shareProcessNamespace,omitempty"`
+
+	// Resources defines resource requests and limits for the editor sidecar container.
+	// +optional
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+}
+
 // GameServerSpec defines the desired state of GameServer
 // leave out for now //+kubebuilder:validation:XValidation:rule="size(self.gameConfigs) <= 1",message="Cannot specify more than one game-specific configuration block."
 type GameServerSpec struct {
@@ -78,6 +102,11 @@ type GameServerSpec struct {
 	// If not specified, Kubernetes scheduler defaults apply.
 	// +optional
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+
+	// Editor defines the configuration for the web-based editor sidecar.
+	// When enabled, a code-server (VS Code in browser) container is injected into the pod.
+	// +optional
+	Editor *EditorSpec `json:"editor,omitempty"`
 }
 
 type GameConfigs struct {
