@@ -32,6 +32,13 @@ Always uses the Helm release namespace.
 {{- end }}
 
 {{/*
+ServiceAccount name used by the controller manager.
+*/}}
+{{- define "gameserver-operator.serviceAccountName" -}}
+{{- include "gameserver-operator.fullname" . }}
+{{- end }}
+
+{{/*
 Resource name with proper truncation for Kubernetes 63-character limit.
 Takes a dict with:
   - .suffix: Resource name suffix (e.g., "metrics", "webhook")

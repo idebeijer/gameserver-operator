@@ -31,6 +31,24 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+// EditorAuthSpec configures authentication for the code-server sidecar.
+type EditorAuthSpec struct {
+	// Enabled controls whether authentication is required to access the editor.
+	// When set to false, any process that can reach the pod — including other pods in the
+	// same cluster — can access the editor without credentials. Only disable this if
+	// access is restricted by network policies or the cluster is fully trusted.
+	// +kubebuilder:default=true
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// PasswordSecretRef references an existing Secret that contains a "password" key.
+	// If not set and Enabled is true, the operator creates a Secret with a randomly
+	// generated password automatically. Retrieve it with:
+	//   kubectl get secret <gameserver-name>-editor-password -o jsonpath='{.data.password}' | base64 -d
+	// +optional
+	PasswordSecretRef *corev1.LocalObjectReference `json:"passwordSecretRef,omitempty"`
+}
+
 // EditorSpec defines the configuration for the web-based editor sidecar.
 type EditorSpec struct {
 	// Enabled indicates whether the code-server (VS Code in browser) sidecar is added to the pod.
@@ -39,10 +57,10 @@ type EditorSpec struct {
 	// +optional
 	Enabled bool `json:"enabled,omitempty"`
 
-	// Password sets the access password for the code-server instance.
-	// If not specified, authentication is disabled (access is secured by kubectl port-forward).
+	// Auth configures authentication for the editor. If omitted, a Secret with a
+	// randomly generated password is created automatically (secure default).
 	// +optional
-	Password string `json:"password,omitempty"`
+	Auth *EditorAuthSpec `json:"auth,omitempty"`
 
 	// ShareProcessNamespace enables sharing the process namespace between the gameserver
 	// and editor containers, allowing the editor terminal to inspect and signal gameserver processes.

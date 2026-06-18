@@ -67,10 +67,25 @@ manager:
   ##
   tolerations: []
 
-## Helper RBAC roles for managing custom resources
+## RBAC configuration
 ##
-rbacHelpers:
-  # Install convenience admin/editor/viewer roles for CRDs
+rbac:
+  ## Install convenience admin/editor/viewer ClusterRoles for the GameServer CRD
+  helpers:
+    enabled: false
+  ## Use namespaced Role/RoleBinding instead of ClusterRole/ClusterRoleBinding
+  namespaced: false
+
+## ServiceAccount for the controller manager
+##
+serviceAccount:
+  enabled: true
+  labels: {}
+  annotations: {}
+
+## NetworkPolicy to restrict ingress to the metrics endpoint
+##
+networkPolicy:
   enabled: false
 
 ## Custom Resource Definitions

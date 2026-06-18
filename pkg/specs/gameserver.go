@@ -122,15 +122,34 @@ func buildLinuxGSMPodSpec(
 	return podSpec
 }
 
+// EditorPasswordSecretName returns the name of the auto-generated Secret holding the
+// code-server password for the given GameServer. The controller creates this Secret
+// when editor auth is not disabled and no external secret is referenced.
+func EditorPasswordSecretName(gs *gamesv1alpha1.GameServer) string {
+	return gs.Name + "-editor-password"
+}
+
 func buildCodeServerSidecar(gs *gamesv1alpha1.GameServer, storageEnabled bool) *corev1ac.ContainerApplyConfiguration {
 	args := []string{"--bind-addr", "0.0.0.0:8080", "--disable-telemetry"}
 
-	var envVars []*corev1ac.EnvVarApplyConfiguration
-	if gs.Spec.Editor.Password != "" {
-		args = append(args, "--auth", "password")
-		envVars = append(envVars, corev1ac.EnvVar().WithName("PASSWORD").WithValue(gs.Spec.Editor.Password))
-	} else {
+	var passwordEnv *corev1ac.EnvVarApplyConfiguration
+	auth := gs.Spec.Editor.Auth
+	if auth != nil && auth.Enabled != nil && !*auth.Enabled {
 		args = append(args, "--auth", "none")
+	} else {
+		args = append(args, "--auth", "password")
+		secretName := EditorPasswordSecretName(gs)
+		if auth != nil && auth.PasswordSecretRef != nil {
+			secretName = auth.PasswordSecretRef.Name
+		}
+		passwordEnv = corev1ac.EnvVar().
+			WithName("PASSWORD").
+			WithValueFrom(corev1ac.EnvVarSource().
+				WithSecretKeyRef(corev1ac.SecretKeySelector().
+					WithName(secretName).
+					WithKey("password"),
+				),
+			)
 	}
 
 	if storageEnabled {
@@ -155,8 +174,8 @@ func buildCodeServerSidecar(gs *gamesv1alpha1.GameServer, storageEnabled bool) *
 			),
 		)
 
-	if len(envVars) > 0 {
-		sidecar.WithEnv(envVars...)
+	if passwordEnv != nil {
+		sidecar.WithEnv(passwordEnv)
 	}
 
 	if storageEnabled {

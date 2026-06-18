@@ -7,6 +7,18 @@ spec:
   editor:
     enabled: true
     shareProcessNamespace: true
+    # auth is omitted: the operator auto-creates a Secret named "sf-editor-password".
+    # Retrieve the password with:
+    #   kubectl get secret sf-editor-password -o jsonpath='{.data.password}' | base64 -d
+    #
+    # To use your own Secret:
+    #   auth:
+    #     passwordSecretRef:
+    #       name: my-secret   # must contain a "password" key
+    #
+    # To disable authentication (only safe with restrictive network policies):
+    #   auth:
+    #     enabled: false
   service:
     type: LoadBalancer
     ports:

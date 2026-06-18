@@ -100,6 +100,98 @@ var _ = Describe("LinuxGSM spec builders", func() {
 			Expect(statefulSet.Spec.VolumeClaimTemplates).To(BeNil())
 		})
 
+		Context("editor sidecar", func() {
+			It("injects no editor container when editor is disabled", func() {
+				gs := newGameServer(func(gs *gamesv1alpha1.GameServer) {
+					gs.Spec.Editor = &gamesv1alpha1.EditorSpec{Enabled: false}
+				})
+				statefulSet := specs.BuildLinuxGSMGameServerStatefulSet(gs)
+				Expect(statefulSet.Spec.Template.Spec.Containers).To(HaveLen(1))
+				Expect(statefulSet.Spec.Template.Spec.ShareProcessNamespace).To(BeNil())
+			})
+
+			It("injects the editor container with auto-secret ref when editor is enabled", func() {
+				gs := newGameServer(func(gs *gamesv1alpha1.GameServer) {
+					gs.Spec.Editor = &gamesv1alpha1.EditorSpec{Enabled: true}
+				})
+				statefulSet := specs.BuildLinuxGSMGameServerStatefulSet(gs)
+				podSpec := statefulSet.Spec.Template.Spec
+
+				Expect(podSpec.Containers).To(HaveLen(2))
+				Expect(podSpec.ShareProcessNamespace).To(BeNil())
+
+				editor := podSpec.Containers[1]
+				Expect(*editor.Name).To(Equal("editor"))
+				Expect(*editor.Image).To(Equal("codercom/code-server:latest"))
+				Expect(editor.Args).To(ContainElements("--auth", "password"))
+				Expect(editor.Args).NotTo(ContainElement("none"))
+
+				Expect(editor.Env).To(HaveLen(1))
+				env := editor.Env[0]
+				Expect(*env.Name).To(Equal("PASSWORD"))
+				Expect(env.ValueFrom).NotTo(BeNil())
+				Expect(env.ValueFrom.SecretKeyRef).NotTo(BeNil())
+				Expect(*env.ValueFrom.SecretKeyRef.Name).To(Equal(specs.EditorPasswordSecretName(gs)))
+				Expect(*env.ValueFrom.SecretKeyRef.Key).To(Equal("password"))
+
+				Expect(editor.VolumeMounts).To(HaveLen(1))
+				Expect(*editor.VolumeMounts[0].MountPath).To(Equal("/data"))
+			})
+
+			It("uses the referenced secret when passwordSecretRef is set", func() {
+				gs := newGameServer(func(gs *gamesv1alpha1.GameServer) {
+					gs.Spec.Editor = &gamesv1alpha1.EditorSpec{
+						Enabled: true,
+						Auth: &gamesv1alpha1.EditorAuthSpec{
+							PasswordSecretRef: &corev1.LocalObjectReference{Name: "my-secret"},
+						},
+					}
+				})
+				statefulSet := specs.BuildLinuxGSMGameServerStatefulSet(gs)
+				editor := statefulSet.Spec.Template.Spec.Containers[1]
+
+				Expect(editor.Env).To(HaveLen(1))
+				Expect(*editor.Env[0].ValueFrom.SecretKeyRef.Name).To(Equal("my-secret"))
+			})
+
+			It("disables auth and omits password env when auth.enabled is false", func() {
+				gs := newGameServer(func(gs *gamesv1alpha1.GameServer) {
+					gs.Spec.Editor = &gamesv1alpha1.EditorSpec{
+						Enabled: true,
+						Auth:    &gamesv1alpha1.EditorAuthSpec{Enabled: new(false)},
+					}
+				})
+				statefulSet := specs.BuildLinuxGSMGameServerStatefulSet(gs)
+				editor := statefulSet.Spec.Template.Spec.Containers[1]
+
+				Expect(editor.Args).To(ContainElements("--auth", "none"))
+				Expect(editor.Env).To(BeEmpty())
+			})
+
+			It("sets shareProcessNamespace when enabled", func() {
+				gs := newGameServer(func(gs *gamesv1alpha1.GameServer) {
+					gs.Spec.Editor = &gamesv1alpha1.EditorSpec{
+						Enabled:               true,
+						ShareProcessNamespace: true,
+					}
+				})
+				statefulSet := specs.BuildLinuxGSMGameServerStatefulSet(gs)
+				Expect(statefulSet.Spec.Template.Spec.ShareProcessNamespace).To(HaveValue(BeTrue()))
+			})
+
+			It("omits the data volume mount when storage is disabled", func() {
+				gs := newGameServer(func(gs *gamesv1alpha1.GameServer) {
+					gs.Spec.Storage = &gamesv1alpha1.StorageSpec{Enabled: new(false)}
+					gs.Spec.Editor = &gamesv1alpha1.EditorSpec{Enabled: true}
+				})
+				statefulSet := specs.BuildLinuxGSMGameServerStatefulSet(gs)
+				editor := statefulSet.Spec.Template.Spec.Containers[1]
+
+				Expect(editor.VolumeMounts).To(BeEmpty())
+				Expect(editor.Args).NotTo(ContainElement("/data"))
+			})
+		})
+
 		It("adds container ports for numeric service target ports", func() {
 			gs := newGameServer(func(gs *gamesv1alpha1.GameServer) {
 				gs.Spec.Service = &gamesv1alpha1.ServiceSpec{
