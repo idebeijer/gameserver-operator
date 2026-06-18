@@ -49,18 +49,18 @@ spec:
                       Auth configures authentication for the editor. If omitted, a Secret with a
                       randomly generated password is created automatically (secure default).
                     properties:
-                      disabled:
-                        default: false
+                      enabled:
+                        default: true
                         description: |-
-                          Disabled turns off authentication entirely.
-                          When true, any process that can reach the pod — including other pods in the same
-                          cluster — can access the editor without credentials. Only set this if access is
-                          restricted by network policies or the cluster is fully trusted.
+                          Enabled controls whether authentication is required to access the editor.
+                          When set to false, any process that can reach the pod — including other pods in the
+                          same cluster — can access the editor without credentials. Only disable this if
+                          access is restricted by network policies or the cluster is fully trusted.
                         type: boolean
                       passwordSecretRef:
                         description: |-
                           PasswordSecretRef references an existing Secret that contains a "password" key.
-                          If not set and Disabled is false, the operator creates a Secret with a randomly
+                          If not set and Enabled is true, the operator creates a Secret with a randomly
                           generated password automatically. Retrieve it with:
                             kubectl get secret <gameserver-name>-editor-password -o jsonpath='{.data.password}' | base64 -d
                         properties:

@@ -95,7 +95,8 @@ func (r *GameServerReconciler) reconcileEditorSecret(ctx context.Context, gs *ga
 	if editor == nil || !editor.Enabled {
 		return nil
 	}
-	if editor.Auth != nil && ((editor.Auth.Enabled != nil && !*editor.Auth.Enabled) || editor.Auth.PasswordSecretRef != nil) {
+	if editor.Auth != nil && ((editor.Auth.Enabled != nil && !*editor.Auth.Enabled) ||
+		(editor.Auth.PasswordSecretRef != nil && editor.Auth.PasswordSecretRef.Name != "")) {
 		return nil
 	}
 

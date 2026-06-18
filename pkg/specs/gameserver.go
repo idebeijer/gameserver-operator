@@ -139,7 +139,7 @@ func buildCodeServerSidecar(gs *gamesv1alpha1.GameServer, storageEnabled bool) *
 	} else {
 		args = append(args, "--auth", "password")
 		secretName := EditorPasswordSecretName(gs)
-		if auth != nil && auth.PasswordSecretRef != nil {
+		if auth != nil && auth.PasswordSecretRef != nil && auth.PasswordSecretRef.Name != "" {
 			secretName = auth.PasswordSecretRef.Name
 		}
 		passwordEnv = corev1ac.EnvVar().
