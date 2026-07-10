@@ -17,7 +17,7 @@ import (
 func BuildLinuxGSMGameServerStatefulSet(gs *gamesv1alpha1.GameServer) *appsv1ac.StatefulSetApplyConfiguration {
 	storageEnabled := linuxGSMStorageEnabled(gs)
 	container := buildLinuxGSMContainer(gs, storageEnabled)
-	podSpec := buildLinuxGSMPodSpec(container)
+	podSpec := buildLinuxGSMPodSpec(gs, container, storageEnabled)
 	stsSpec := buildLinuxGSMStatefulSetSpec(gs, podSpec, storageEnabled)
 
 	sts := appsv1ac.StatefulSet(gs.Name, gs.Namespace).
@@ -93,8 +93,12 @@ func buildLinuxGSMContainer(gs *gamesv1alpha1.GameServer, storageEnabled bool) *
 	return container
 }
 
-func buildLinuxGSMPodSpec(container *corev1ac.ContainerApplyConfiguration) *corev1ac.PodSpecApplyConfiguration {
-	return corev1ac.PodSpec().
+func buildLinuxGSMPodSpec(
+	gs *gamesv1alpha1.GameServer,
+	container *corev1ac.ContainerApplyConfiguration,
+	storageEnabled bool,
+) *corev1ac.PodSpecApplyConfiguration {
+	podSpec := corev1ac.PodSpec().
 		WithAutomountServiceAccountToken(false).
 		WithSecurityContext(corev1ac.PodSecurityContext().
 			WithRunAsNonRoot(true).
@@ -107,6 +111,93 @@ func buildLinuxGSMPodSpec(container *corev1ac.ContainerApplyConfiguration) *core
 			),
 		).
 		WithContainers(container)
+
+	if gs.Spec.Editor != nil && gs.Spec.Editor.Enabled {
+		podSpec.WithContainers(buildCodeServerSidecar(gs, storageEnabled))
+		if gs.Spec.Editor.ShareProcessNamespace {
+			podSpec.WithShareProcessNamespace(true)
+		}
+	}
+
+	return podSpec
+}
+
+// EditorPasswordSecretName returns the name of the auto-generated Secret holding the
+// code-server password for the given GameServer. The controller creates this Secret
+// when editor auth is not disabled and no external secret is referenced.
+func EditorPasswordSecretName(gs *gamesv1alpha1.GameServer) string {
+	return gs.Name + "-editor-password"
+}
+
+func buildCodeServerSidecar(gs *gamesv1alpha1.GameServer, storageEnabled bool) *corev1ac.ContainerApplyConfiguration {
+	args := []string{"--bind-addr", "0.0.0.0:8080", "--disable-telemetry"}
+
+	var passwordEnv *corev1ac.EnvVarApplyConfiguration
+	auth := gs.Spec.Editor.Auth
+	if auth != nil && auth.Enabled != nil && !*auth.Enabled {
+		args = append(args, "--auth", "none")
+	} else {
+		args = append(args, "--auth", "password")
+		secretName := EditorPasswordSecretName(gs)
+		if auth != nil && auth.PasswordSecretRef != nil && auth.PasswordSecretRef.Name != "" {
+			secretName = auth.PasswordSecretRef.Name
+		}
+		passwordEnv = corev1ac.EnvVar().
+			WithName("PASSWORD").
+			WithValueFrom(corev1ac.EnvVarSource().
+				WithSecretKeyRef(corev1ac.SecretKeySelector().
+					WithName(secretName).
+					WithKey("password"),
+				),
+			)
+	}
+
+	if storageEnabled {
+		args = append(args, "/data")
+	}
+
+	sidecar := corev1ac.Container().
+		WithName("editor").
+		WithImage("codercom/code-server:latest").
+		WithImagePullPolicy(v1.PullIfNotPresent).
+		WithArgs(args...).
+		WithPorts(
+			corev1ac.ContainerPort().
+				WithName("editor").
+				WithContainerPort(8080).
+				WithProtocol(v1.ProtocolTCP),
+		).
+		WithSecurityContext(corev1ac.SecurityContext().
+			WithAllowPrivilegeEscalation(false).
+			WithCapabilities(corev1ac.Capabilities().
+				WithDrop("ALL"),
+			),
+		)
+
+	if passwordEnv != nil {
+		sidecar.WithEnv(passwordEnv)
+	}
+
+	if storageEnabled {
+		sidecar.WithVolumeMounts(
+			corev1ac.VolumeMount().
+				WithName("data").
+				WithMountPath("/data"),
+		)
+	}
+
+	if gs.Spec.Editor.Resources != nil {
+		resources := corev1ac.ResourceRequirements()
+		if gs.Spec.Editor.Resources.Limits != nil {
+			resources.WithLimits(gs.Spec.Editor.Resources.Limits)
+		}
+		if gs.Spec.Editor.Resources.Requests != nil {
+			resources.WithRequests(gs.Spec.Editor.Resources.Requests)
+		}
+		sidecar.WithResources(resources)
+	}
+
+	return sidecar
 }
 
 func buildLinuxGSMStatefulSetSpec(gs *gamesv1alpha1.GameServer,

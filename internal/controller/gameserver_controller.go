@@ -55,6 +55,7 @@ type GameServerReconciler struct {
 // +kubebuilder:rbac:groups=games.idebeijer.github.io,resources=gameservers/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -83,6 +84,7 @@ func (r *GameServerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&gamesv1alpha1.GameServer{}).
 		Named("gameserver").
 		Owns(&corev1.Service{}).
+		Owns(&corev1.Secret{}).
 		Owns(&appsv1.StatefulSet{}).
 		Complete(r)
 }

@@ -1,0 +1,34 @@
+apiVersion: games.idebeijer.github.io/v1alpha1
+kind: GameServer
+metadata:
+  name: sf
+spec:
+  gameName: sf
+  editor:
+    enabled: true
+    shareProcessNamespace: true
+    # auth is omitted: the operator auto-creates a Secret named "sf-editor-password".
+    # Retrieve the password with:
+    #   kubectl get secret sf-editor-password -o jsonpath='{.data.password}' | base64 -d
+    #
+    # To use your own Secret:
+    #   auth:
+    #     passwordSecretRef:
+    #       name: my-secret   # must contain a "password" key
+    #
+    # To disable authentication (only safe with restrictive network policies):
+    #   auth:
+    #     enabled: false
+  service:
+    type: LoadBalancer
+    ports:
+      - name: game-tcp
+        port: 7777
+        protocol: TCP
+      - name: game-udp
+        port: 7777
+        protocol: UDP
+      - name: api-tcp
+        protocol: TCP
+        port: 8888
+        targetPort: 8888
