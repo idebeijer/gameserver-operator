@@ -224,7 +224,7 @@ type GameServerList struct {
 
 func init() {
 	SchemeBuilder.Register(func(s *runtime.Scheme) error {
-		s.AddKnownTypes(GroupVersion, &GameServer{}, &GameServerList{})
+		s.AddKnownTypes(SchemeGroupVersion, &GameServer{}, &GameServerList{})
 		return nil
 	})
 }
