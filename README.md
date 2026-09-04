@@ -6,7 +6,6 @@
 
 [![License](https://img.shields.io/github/license/idebeijer/gameserver-operator?style=for-the-badge)](https://github.com/idebeijer/gameserver-operator/blob/main/LICENSE)
 [![Release](https://img.shields.io/github/v/release/idebeijer/gameserver-operator?style=for-the-badge)](https://github.com/idebeijer/gameserver-operator/releases)
-[![Go Report Card](https://goreportcard.com/badge/github.com/idebeijer/gameserver-operator?style=for-the-badge)](https://goreportcard.com/report/github.com/idebeijer/gameserver-operator)
 [![CI](https://img.shields.io/github/actions/workflow/status/idebeijer/gameserver-operator/test.yml?branch=main&style=for-the-badge)](https://github.com/idebeijer/gameserver-operator/actions)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/idebeijer/gameserver-operator?style=for-the-badge)](https://go.dev/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-1.22+-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
