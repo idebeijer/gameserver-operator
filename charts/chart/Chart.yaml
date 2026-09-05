@@ -8,6 +8,7 @@ keywords:
   - linuxgsm
 annotations:
   artifacthub.io/license: MIT
+  kubebuilder.io/generated-by: kubebuilder
 sources:
   - https://github.com/idebeijer/gameserver-operator
 maintainers:

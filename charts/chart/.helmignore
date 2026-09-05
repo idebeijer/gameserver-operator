@@ -22,4 +22,4 @@
 .vscode/
 
 # Helm chart artifacts
-charts/chart/*.tgz
+dist/chart/*.tgz
